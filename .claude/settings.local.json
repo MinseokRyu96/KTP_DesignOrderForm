@@ -8,7 +8,10 @@
       "Bash(git add *)",
       "Bash(git commit -m 'feat: 발주 관리 시스템 초기 커밋 *)",
       "Bash(git branch *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(gh auth *)",
+      "Bash(git push *)",
+      "Bash(git commit *)"
     ]
   }
 }

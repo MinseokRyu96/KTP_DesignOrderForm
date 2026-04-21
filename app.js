@@ -44,6 +44,7 @@ function itemToRow(item) {
 let items      = [];
 let editingId  = null;
 let deletingId = null;
+let selectedIds = new Set();
 
 // ── DOM refs ──────────────────────────────────────────────────
 const itemsGrid    = document.getElementById('itemsGrid');
@@ -72,6 +73,11 @@ const itemDeliveryType  = document.getElementById('itemDeliveryType');
 const deliveryOwnBtn    = document.getElementById('deliveryOwnBtn');
 const deliveryDirectBtn = document.getElementById('deliveryDirectBtn');
 const deliveryFields    = document.getElementById('deliveryFields');
+
+const selectBar      = document.getElementById('selectBar');
+const selectCount    = document.getElementById('selectCount');
+const selectClearBtn = document.getElementById('selectClearBtn');
+const selectCopyBtn  = document.getElementById('selectCopyBtn');
 
 // ── Utils ─────────────────────────────────────────────────────
 function uid() {
@@ -165,7 +171,13 @@ function render() {
       ? `<div class="card-delivery-info">📍 배송지 주소 :<br>👤 담당자명 :&nbsp;&nbsp;📞 연락처 :</div>`
       : '';
 
+    const isSelected = selectedIds.has(item.id);
+    if (isSelected) card.classList.add('selected');
+
     card.innerHTML = `
+      <label class="card-checkbox-wrap" data-action="select" data-id="${item.id}">
+        <input type="checkbox" class="card-checkbox" ${isSelected ? 'checked' : ''}>
+      </label>
       ${imageHtml}
       <div class="card-body">
         <div class="card-title">${escapeHtml(item.name)}</div>
@@ -210,6 +222,75 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/\n/g, '<br>');
+}
+
+// ── 다중 선택 ─────────────────────────────────────────────────
+function toggleSelect(id) {
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+  } else {
+    selectedIds.add(id);
+  }
+  updateSelectBar();
+  render();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  updateSelectBar();
+  render();
+}
+
+function updateSelectBar() {
+  const count = selectedIds.size;
+  selectBar.classList.toggle('visible', count > 0);
+  selectCount.textContent = `${count}개 선택됨`;
+}
+
+async function copySelected() {
+  if (selectedIds.size === 0) return;
+
+  const selectedItems = items.filter(i => selectedIds.has(i.id));
+  const blocks = selectedItems.map((item, idx) => {
+    const lines = [`${idx + 1}. 【 ${item.name} 】`, ''];
+    if (item.vendor) lines.push(`발주처 : ${item.vendor}`);
+    if (item.url)    lines.push(`URL : ${item.url}`);
+    lines.push('');
+    if (item.options) {
+      lines.push('<옵션>');
+      lines.push(item.options);
+      lines.push('');
+    }
+    const isDirect = item.deliveryType === 'direct';
+    lines.push(`배송 방식 : ${isDirect ? '직배송' : '자사 배송'}`);
+    if (isDirect) {
+      lines.push('배송지 주소 :');
+      lines.push('담당자명 :');
+      lines.push('연락처 :');
+    }
+    if (item.note) {
+      lines.push('');
+      lines.push(`비고 : ${item.note}`);
+    }
+    return lines.join('\n');
+  });
+
+  const text = blocks.join('\n\n' + '─'.repeat(30) + '\n\n');
+
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`✅ ${selectedIds.size}개 항목 복사 완료!`);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(`✅ ${selectedIds.size}개 항목 복사 완료!`);
+  }
 }
 
 // ── Copy formatting ───────────────────────────────────────────
@@ -466,7 +547,11 @@ itemsGrid.addEventListener('click', (e) => {
   if (action === 'copy')   copyItem(id);
   if (action === 'edit')   openModal(id);
   if (action === 'delete') openDeleteModal(id);
+  if (action === 'select') toggleSelect(id);
 });
+
+selectClearBtn.addEventListener('click', clearSelection);
+selectCopyBtn.addEventListener('click', copySelected);
 
 deliveryOwnBtn.addEventListener('click', () => setDeliveryType('own'));
 deliveryDirectBtn.addEventListener('click', () => setDeliveryType('direct'));
