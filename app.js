@@ -43,13 +43,14 @@ function itemToRow(item) {
 }
 
 // ── 상태 ──────────────────────────────────────────────────────
-let items        = [];
-let editingId    = null;
-let deletingId   = null;
-let selectedIds  = new Set();
-let filterMain   = '';
-let filterSub    = '';
-let latestOrderMap = {}; // itemId -> 최근 발주일
+let items          = [];
+let editingId      = null;
+let deletingId     = null;
+let selectedIds    = new Set();
+let filterMain     = '';
+let filterSub      = '';
+let latestOrderMap = {};
+let pendingImageFile = null; // Storage 업로드 대기 중인 파일
 
 // ── DOM refs ──────────────────────────────────────────────────
 const itemsGrid    = document.getElementById('itemsGrid');
@@ -152,6 +153,11 @@ async function upsertItem(item) {
 }
 
 async function removeItem(id) {
+  const item = items.find(i => i.id === id);
+  if (item?.image) {
+    const match = item.image.match(/\/item-images\/(.+)$/);
+    if (match) await db.storage.from('item-images').remove([decodeURIComponent(match[1])]);
+  }
   const { error } = await db.from('items').delete().eq('id', id);
   if (error) throw error;
 }
@@ -416,6 +422,7 @@ function setDeliveryType(type) {
 // ── Modal ─────────────────────────────────────────────────────
 function openModal(id = null) {
   editingId = id;
+  pendingImageFile = null;
   form.reset();
   imagePreview.hidden = true;
   imagePreview.src = '';
@@ -501,13 +508,11 @@ function updateUnitPrice() {
 // ── Image handling ────────────────────────────────────────────
 function handleImageFile(file) {
   if (!file) return;
-
-  // 2MB 초과 시 경고
-  if (file.size > 2 * 1024 * 1024) {
-    showToast('⚠️ 이미지가 너무 큽니다. 2MB 이하로 올려주세요.');
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('⚠️ 이미지가 너무 큽니다. 10MB 이하로 올려주세요.');
     return;
   }
-
+  pendingImageFile = file;
   const reader = new FileReader();
   reader.onload = (e) => {
     imagePreview.src = e.target.result;
@@ -524,6 +529,7 @@ function removeImage() {
   imagePlaceholder.style.display = '';
   imageRemove.hidden = true;
   imageInput.value = '';
+  pendingImageFile = null;
 }
 
 // ── Save ──────────────────────────────────────────────────────
@@ -533,34 +539,58 @@ async function saveItem() {
   const total  = parseFloat(itemTotal.value);
   const vendor = itemVendor.value.trim();
 
-  if (!name)        { itemName.focus();   showToast('⚠️ 품목명을 입력하세요.');  return; }
-  if (!qty || qty < 1) { itemQty.focus(); showToast('⚠️ 수량을 입력하세요.');   return; }
-  if (!vendor)      { itemVendor.focus(); showToast('⚠️ 발주처를 입력하세요.'); return; }
+  if (!name)           { itemName.focus();   showToast('⚠️ 품목명을 입력하세요.');  return; }
+  if (!qty || qty < 1) { itemQty.focus();    showToast('⚠️ 수량을 입력하세요.');   return; }
+  if (!vendor)         { itemVendor.focus(); showToast('⚠️ 발주처를 입력하세요.'); return; }
 
-  const data = {
-    id           : editingId || uid(),
-    name,
-    qty,
-    total        : isNaN(total) ? null : total,
-    vendor,
-    url          : itemUrl.value.trim()      || '',
-    orderUrl     : itemOrderUrl.value.trim() || '',
-    options      : itemOptions.value.trim()  || '',
-    note         : itemNote.value.trim()     || '',
-    image        : imagePreview.hidden ? '' : imagePreview.src,
-    deliveryType  : itemDeliveryType.value,
-    mainCategory  : getCatValues(itemMainCatGroup),
-    subCategory   : getCatValues(itemSubCatGroup),
-    createdAt     : editingId
-      ? (items.find(i => i.id === editingId)?.createdAt || new Date().toISOString())
-      : new Date().toISOString(),
-  };
-
+  const itemId = editingId || uid();
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
   btn.textContent = '저장 중...';
 
   try {
+    // 이미지: Storage 업로드
+    let imageUrl = '';
+    if (pendingImageFile) {
+      const ext  = pendingImageFile.name.split('.').pop().toLowerCase();
+      const path = `${itemId}.${ext}`;
+      const { error: uploadError } = await db.storage
+        .from('item-images')
+        .upload(path, pendingImageFile, { upsert: true, contentType: pendingImageFile.type });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = db.storage.from('item-images').getPublicUrl(path);
+      imageUrl = urlData.publicUrl;
+    } else if (!imagePreview.hidden) {
+      // 기존 URL 유지 (수정 시 이미지 그대로 두는 경우)
+      imageUrl = imagePreview.src;
+    } else if (editingId) {
+      // 이미지 제거됨 — Storage에서도 삭제
+      const oldItem = items.find(i => i.id === editingId);
+      if (oldItem?.image) {
+        const match = oldItem.image.match(/\/item-images\/(.+)$/);
+        if (match) await db.storage.from('item-images').remove([decodeURIComponent(match[1])]);
+      }
+    }
+
+    const data = {
+      id           : itemId,
+      name,
+      qty,
+      total        : isNaN(total) ? null : total,
+      vendor,
+      url          : itemUrl.value.trim()      || '',
+      orderUrl     : itemOrderUrl.value.trim() || '',
+      options      : itemOptions.value.trim()  || '',
+      note         : itemNote.value.trim()     || '',
+      image        : imageUrl,
+      deliveryType : itemDeliveryType.value,
+      mainCategory : getCatValues(itemMainCatGroup),
+      subCategory  : getCatValues(itemSubCatGroup),
+      createdAt    : editingId
+        ? (items.find(i => i.id === editingId)?.createdAt || new Date().toISOString())
+        : new Date().toISOString(),
+    };
+
     await upsertItem(data);
 
     if (editingId) {
@@ -579,6 +609,7 @@ async function saveItem() {
   } finally {
     btn.disabled = false;
     btn.textContent = '저장';
+    pendingImageFile = null;
   }
 }
 
