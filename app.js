@@ -240,6 +240,7 @@ function render() {
       </div>
       <div class="card-actions">
         <button class="btn btn-copy" data-action="copy" data-id="${item.id}">📋 복사</button>
+        <button class="btn btn-history" data-action="history" data-id="${item.id}">📦 발주내역</button>
         <button class="btn btn-edit" data-action="edit" data-id="${item.id}">✏️ 수정</button>
         <button class="btn btn-delete" data-action="delete" data-id="${item.id}">🗑</button>
       </div>
@@ -585,10 +586,11 @@ itemsGrid.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const { action, id } = btn.dataset;
-  if (action === 'copy')   copyItem(id);
-  if (action === 'edit')   openModal(id);
-  if (action === 'delete') openDeleteModal(id);
-  if (action === 'select') toggleSelect(id);
+  if (action === 'copy')    copyItem(id);
+  if (action === 'history') openHistoryModal(id);
+  if (action === 'edit')    openModal(id);
+  if (action === 'delete')  openDeleteModal(id);
+  if (action === 'select')  toggleSelect(id);
 });
 
 selectClearBtn.addEventListener('click', clearSelection);
@@ -660,6 +662,213 @@ document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     if (modalOverlay.classList.contains('open')) saveItem();
   }
+});
+
+// ── 발주내역 ──────────────────────────────────────────────────
+const historyOverlay  = document.getElementById('historyOverlay');
+const historyTitle    = document.getElementById('historyTitle');
+const historySubtitle = document.getElementById('historySubtitle');
+const historyList     = document.getElementById('historyList');
+const historyEmpty    = document.getElementById('historyEmpty');
+const historyFormFields = document.getElementById('historyFormFields');
+const historyFormTitle  = document.getElementById('historyFormTitle');
+const historyEditId   = document.getElementById('historyEditId');
+const hOrderDate      = document.getElementById('hOrderDate');
+const hQty            = document.getElementById('hQty');
+const hTotal          = document.getElementById('hTotal');
+const hUnitPrice      = document.getElementById('hUnitPrice');
+const hPurpose        = document.getElementById('hPurpose');
+
+let currentHistoryItemId = null;
+let historyRecords = [];
+
+function hUpdateUnitPrice() {
+  const qty   = parseFloat(hQty.value)   || 0;
+  const total = parseFloat(hTotal.value) || 0;
+  hUnitPrice.value = (qty > 0 && total > 0)
+    ? formatNumber(Math.round(total / qty)) + ' 원'
+    : '';
+}
+
+function openHistoryForm(record = null) {
+  historyEditId.value = record ? record.id : '';
+  hOrderDate.value    = record ? record.order_date   : new Date().toISOString().slice(0, 10);
+  hQty.value          = record ? record.quantity      : '';
+  hTotal.value        = record ? record.total_amount  : '';
+  hPurpose.value      = record ? record.purpose       : '';
+  hUpdateUnitPrice();
+  historyFormTitle.textContent = record ? '✏️ 발주 수정' : '+ 새 발주 추가';
+  historyFormFields.classList.add('open');
+  hOrderDate.focus();
+}
+
+function closeHistoryForm() {
+  historyFormFields.classList.remove('open');
+  historyFormTitle.textContent = '+ 새 발주 추가';
+  historyEditId.value = '';
+  hOrderDate.value = '';
+  hQty.value = '';
+  hTotal.value = '';
+  hUnitPrice.value = '';
+  hPurpose.value = '';
+}
+
+function renderHistoryList() {
+  historyList.innerHTML = '';
+
+  if (historyRecords.length === 0) {
+    historyList.appendChild(historyEmpty);
+    historyEmpty.style.display = '';
+    return;
+  }
+
+  historyEmpty.style.display = 'none';
+  const sorted = [...historyRecords].sort((a, b) => b.order_date.localeCompare(a.order_date));
+
+  sorted.forEach(rec => {
+    const unitPrice = rec.quantity && rec.total_amount
+      ? Math.round(rec.total_amount / rec.quantity)
+      : null;
+
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.innerHTML = `
+      <div>
+        <div class="hrow-label">발주일</div>
+        <div class="hrow-value">${rec.order_date}</div>
+      </div>
+      <div>
+        <div class="hrow-label">개수</div>
+        <div class="hrow-value">${formatNumber(rec.quantity)}</div>
+      </div>
+      <div>
+        <div class="hrow-label">단가</div>
+        <div class="hrow-value">${unitPrice !== null ? formatNumber(unitPrice) + ' 원' : '-'}</div>
+      </div>
+      <div>
+        <div class="hrow-label">총금액</div>
+        <div class="hrow-value accent">${rec.total_amount ? formatNumber(rec.total_amount) + ' 원' : '-'}</div>
+      </div>
+      <div style="overflow:hidden;">
+        <div class="hrow-label">발주 목적</div>
+        <div class="hrow-purpose">${escapeHtml(rec.purpose) || '-'}</div>
+      </div>
+      <div class="hrow-actions">
+        <button class="btn-hrow" data-haction="edit" data-hid="${rec.id}">수정</button>
+        <button class="btn-hrow danger" data-haction="delete" data-hid="${rec.id}">삭제</button>
+      </div>
+    `;
+    historyList.appendChild(row);
+  });
+}
+
+async function openHistoryModal(itemId) {
+  currentHistoryItemId = itemId;
+  const item = items.find(i => i.id === itemId);
+  historyTitle.textContent    = '발주내역';
+  historySubtitle.textContent = item ? item.name : '';
+  closeHistoryForm();
+  historyOverlay.classList.add('open');
+
+  const { data, error } = await db
+    .from('order_history')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('order_date', { ascending: false });
+
+  historyRecords = error ? [] : (data || []);
+  renderHistoryList();
+}
+
+function closeHistoryModal() {
+  historyOverlay.classList.remove('open');
+  currentHistoryItemId = null;
+  historyRecords = [];
+}
+
+async function saveHistoryRecord() {
+  const date    = hOrderDate.value;
+  const qty     = parseFloat(hQty.value);
+  const total   = parseFloat(hTotal.value);
+  const purpose = hPurpose.value.trim();
+
+  if (!date)       { hOrderDate.focus(); showToast('⚠️ 발주일을 입력하세요.'); return; }
+  if (!qty || qty < 1) { hQty.focus(); showToast('⚠️ 개수를 입력하세요.'); return; }
+
+  const unitPrice = qty && total ? Math.round(total / qty) : null;
+  const editId    = historyEditId.value;
+
+  const record = {
+    id           : editId || uid(),
+    item_id      : currentHistoryItemId,
+    order_date   : date,
+    quantity     : qty,
+    total_amount : isNaN(total) ? null : total,
+    unit_price   : unitPrice,
+    purpose,
+  };
+
+  const btn = document.getElementById('hSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  try {
+    const { error } = await db.from('order_history').upsert(record);
+    if (error) throw error;
+
+    if (editId) {
+      const idx = historyRecords.findIndex(r => r.id === editId);
+      if (idx !== -1) historyRecords[idx] = record;
+    } else {
+      historyRecords.unshift(record);
+    }
+    renderHistoryList();
+    closeHistoryForm();
+    showToast('✅ 저장됐습니다.');
+  } catch (e) {
+    showToast('❌ 저장 중 오류가 발생했습니다.');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '저장';
+  }
+}
+
+async function deleteHistoryRecord(id) {
+  const { error } = await db.from('order_history').delete().eq('id', id);
+  if (error) { showToast('❌ 삭제 중 오류가 발생했습니다.'); return; }
+  historyRecords = historyRecords.filter(r => r.id !== id);
+  renderHistoryList();
+  showToast('삭제됐습니다.');
+}
+
+// 발주내역 이벤트
+document.getElementById('historyClose').addEventListener('click', closeHistoryModal);
+document.getElementById('historyDoneBtn').addEventListener('click', closeHistoryModal);
+document.getElementById('historyAddBtn').addEventListener('click', () => openHistoryForm());
+document.getElementById('historyFormTitle').addEventListener('click', () => {
+  if (historyFormFields.classList.contains('open')) closeHistoryForm();
+  else openHistoryForm();
+});
+document.getElementById('hSaveBtn').addEventListener('click', saveHistoryRecord);
+document.getElementById('hCancelBtn').addEventListener('click', closeHistoryForm);
+
+historyOverlay.addEventListener('click', (e) => {
+  if (e.target === historyOverlay) closeHistoryModal();
+});
+
+hQty.addEventListener('input', hUpdateUnitPrice);
+hTotal.addEventListener('input', hUpdateUnitPrice);
+
+historyList.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-haction]');
+  if (!btn) return;
+  const { haction, hid } = btn.dataset;
+  if (haction === 'edit') {
+    const rec = historyRecords.find(r => r.id === hid);
+    if (rec) openHistoryForm(rec);
+  }
+  if (haction === 'delete') deleteHistoryRecord(hid);
 });
 
 // ── Init ──────────────────────────────────────────────────────
