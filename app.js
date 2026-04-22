@@ -49,6 +49,7 @@ let deletingId   = null;
 let selectedIds  = new Set();
 let filterMain   = '';
 let filterSub    = '';
+let latestOrderMap = {}; // itemId -> 최근 발주일
 
 // ── DOM refs ──────────────────────────────────────────────────
 const itemsGrid    = document.getElementById('itemsGrid');
@@ -131,6 +132,20 @@ async function fetchItems() {
   return (data || []).map(rowToItem);
 }
 
+async function fetchLatestOrders() {
+  const { data, error } = await db
+    .from('order_history')
+    .select('item_id, order_date')
+    .order('order_date', { ascending: false });
+  if (error) return;
+  latestOrderMap = {};
+  (data || []).forEach(row => {
+    if (!latestOrderMap[row.item_id]) {
+      latestOrderMap[row.item_id] = row.order_date;
+    }
+  });
+}
+
 async function upsertItem(item) {
   const { error } = await db.from('items').upsert(itemToRow(item));
   if (error) throw error;
@@ -196,6 +211,11 @@ function render() {
       ? `<div class="card-category">${mainBadges}${subBadges}</div>`
       : '';
 
+    const latestOrder = latestOrderMap[item.id];
+    const latestOrderHtml = latestOrder
+      ? `<div class="card-latest-order">🕒 최근 발주일 <strong>${latestOrder}</strong></div>`
+      : '';
+
     const isDirect = item.deliveryType === 'direct';
     const deliveryBadge = isDirect
       ? `<span class="delivery-badge direct">🚚 직배송</span>`
@@ -240,6 +260,7 @@ function render() {
         ${optionsHtml}
         ${deliveryInfoHtml}
         ${noteHtml}
+        ${latestOrderHtml}
       </div>
       <div class="card-actions">
         <button class="btn btn-copy" data-action="copy" data-id="${item.id}">📋 복사</button>
@@ -824,6 +845,9 @@ async function saveHistoryRecord() {
     } else {
       historyRecords.unshift(record);
     }
+    // 최근 발주일 갱신
+    await fetchLatestOrders();
+    render();
     renderHistoryList();
     closeHistoryForm();
     showToast('✅ 저장됐습니다.');
@@ -840,6 +864,8 @@ async function deleteHistoryRecord(id) {
   const { error } = await db.from('order_history').delete().eq('id', id);
   if (error) { showToast('❌ 삭제 중 오류가 발생했습니다.'); return; }
   historyRecords = historyRecords.filter(r => r.id !== id);
+  await fetchLatestOrders();
+  render();
   renderHistoryList();
   showToast('삭제됐습니다.');
 }
@@ -876,7 +902,7 @@ historyList.addEventListener('click', (e) => {
 // ── Init ──────────────────────────────────────────────────────
 (async () => {
   setLoading(true);
-  items = await fetchItems();
+  [items] = await Promise.all([fetchItems(), fetchLatestOrders()]);
   render();
   setLoading(false);
   subscribeRealtime();
