@@ -211,7 +211,7 @@ select:focus {
 
 /* ── Main ── */
 .main-content {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -246,7 +246,7 @@ select:focus {
 /* ── Grid ── */
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
@@ -960,7 +960,7 @@ textarea {
   }
 
   .items-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .form-row.three-col {
