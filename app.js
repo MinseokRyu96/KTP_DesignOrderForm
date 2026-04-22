@@ -1,9 +1,7 @@
 'use strict';
 
 // ── Supabase ──────────────────────────────────────────────────
-const SUPABASE_URL      = '***REMOVED_URL***';
-const SUPABASE_ANON_KEY = '***REMOVED***';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
 // ── DB 변환 헬퍼 ──────────────────────────────────────────────
 function rowToItem(row) {
