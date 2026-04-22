@@ -214,7 +214,10 @@ function render() {
       </label>
       ${imageHtml}
       <div class="card-body">
-        <div class="card-title">${escapeHtml(item.name)}</div>
+        <div class="card-title-row">
+          <div class="card-title">${escapeHtml(item.name)}</div>
+          <button class="btn-history-inline" data-action="history" data-id="${item.id}">📦 발주내역</button>
+        </div>
         <div class="card-meta">
           <div class="meta-item">
             <div class="meta-label">수량</div>
@@ -240,7 +243,6 @@ function render() {
       </div>
       <div class="card-actions">
         <button class="btn btn-copy" data-action="copy" data-id="${item.id}">📋 복사</button>
-        <button class="btn btn-history" data-action="history" data-id="${item.id}">📦 발주내역</button>
         <button class="btn btn-edit" data-action="edit" data-id="${item.id}">✏️ 수정</button>
         <button class="btn btn-delete" data-action="delete" data-id="${item.id}">🗑</button>
       </div>
