@@ -25,6 +25,11 @@
 | 🏢 자사 배송 | 회사 주소로 배송 |
 | 🚚 직배송 | 복사 시 배송지 주소 / 담당자명 / 연락처 빈 칸 포함 → 붙여넣기 후 직접 입력 |
 
+### 카테고리 분류 및 필터
+- 항목마다 **대분류** (매장 / 호텔 / 병원) + **소분류** (리플렛 / 와블러 / 봉투 / 스티커 / 배너 / POP) 지정
+- 상단 필터 바에서 클릭 한 번으로 카테고리별 필터링
+- 카드에 카테고리 뱃지 표시 (복사 시 제외)
+
 ### 다중 선택 복사
 - 카드 좌상단 **체크박스**로 여러 항목 동시 선택
 - 선택 시 하단에 선택 바 등장 → **📋 선택 항목 복사** 클릭
@@ -109,7 +114,9 @@ create table public.items (
   note          text default '',
   image         text default '',
   delivery_type text default 'own',
-  created_at    timestamptz default now()
+  created_at    timestamptz default now(),
+  main_category text default '',
+  sub_category  text default ''
 );
 ```
 
