@@ -537,7 +537,7 @@ document.getElementById('deleteClose').addEventListener('click', closeDeleteModa
 document.getElementById('deleteCancelBtn').addEventListener('click', closeDeleteModal);
 document.getElementById('deleteConfirmBtn').addEventListener('click', confirmDelete);
 
-modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+// 모달 외부 클릭으로 닫히지 않도록 의도적으로 막음
 deleteOverlay.addEventListener('click', (e) => { if (e.target === deleteOverlay) closeDeleteModal(); });
 
 itemsGrid.addEventListener('click', (e) => {
