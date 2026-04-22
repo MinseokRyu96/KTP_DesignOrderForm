@@ -11,7 +11,8 @@
 ### 발주 항목 관리
 - 품목명, 수량, 총 금액, 발주처, 발주 URL, 주문 URL, 옵션/스펙, 비고 입력
 - 수량 + 총 금액 입력 시 **단가 자동 계산**
-- 참고 이미지 업로드 (드래그앤드롭 지원, 2MB 이하)
+- 참고 이미지 업로드 (드래그앤드롭 지원, 10MB 이하)
+- 이미지는 **Supabase Storage**에 저장, DB에는 URL만 보관
 - 항목 추가 / 수정 / 삭제
 
 ### 지출결의서 복사
@@ -85,6 +86,7 @@ URL : https://www.swadpia.co.kr/...
 |------|-----------|
 | Frontend | HTML, CSS, Vanilla JS |
 | Database | [Supabase](https://supabase.com) (PostgreSQL) |
+| 이미지 저장 | Supabase Storage (`item-images` 버킷) |
 | 실시간 동기화 | Supabase Realtime |
 | 호스팅 | [Netlify](https://netlify.com) |
 
@@ -119,12 +121,35 @@ create table public.items (
   order_url     text default '',
   options       text default '',
   note          text default '',
-  image         text default '',
+  image         text default '',  -- Supabase Storage 공개 URL
   delivery_type text default 'own',
   created_at    timestamptz default now(),
-  main_category text default '',
-  sub_category  text default ''
+  main_category text[] default '{}',
+  sub_category  text[] default '{}'
 );
+
+create table public.order_history (
+  id           text primary key,
+  item_id      text references public.items(id) on delete cascade,
+  order_date   date,
+  quantity     numeric,
+  total_amount numeric,
+  unit_price   numeric,
+  purpose      text default '',
+  created_at   timestamptz default now()
+);
+```
+
+### Storage 버킷
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('item-images', 'item-images', true);
+
+create policy "public read"   on storage.objects for select using (bucket_id = 'item-images');
+create policy "public insert" on storage.objects for insert with check (bucket_id = 'item-images');
+create policy "public update" on storage.objects for update using (bucket_id = 'item-images');
+create policy "public delete" on storage.objects for delete using (bucket_id = 'item-images');
 ```
 
 ---
