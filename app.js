@@ -19,8 +19,8 @@ function rowToItem(row) {
     note          : row.note          || '',
     image         : row.image         || '',
     deliveryType  : row.delivery_type || 'own',
-    mainCategory  : row.main_category || '',
-    subCategory   : row.sub_category  || '',
+    mainCategory  : Array.isArray(row.main_category) ? row.main_category : [],
+    subCategory   : Array.isArray(row.sub_category)  ? row.sub_category  : [],
     createdAt     : row.created_at,
   };
 }
@@ -38,8 +38,8 @@ function itemToRow(item) {
     note          : item.note         || '',
     image         : item.image        || '',
     delivery_type : item.deliveryType || 'own',
-    main_category : item.mainCategory || '',
-    sub_category  : item.subCategory  || '',
+    main_category : item.mainCategory || [],
+    sub_category  : item.subCategory  || [],
     created_at    : item.createdAt,
   };
 }
@@ -85,8 +85,8 @@ const selectCount    = document.getElementById('selectCount');
 const selectClearBtn = document.getElementById('selectClearBtn');
 const selectCopyBtn  = document.getElementById('selectCopyBtn');
 
-const itemMainCategory = document.getElementById('itemMainCategory');
-const itemSubCategory  = document.getElementById('itemSubCategory');
+const itemMainCatGroup = document.getElementById('itemMainCategory');
+const itemSubCatGroup  = document.getElementById('itemSubCategory');
 
 // ── Utils ─────────────────────────────────────────────────────
 function uid() {
@@ -102,6 +102,21 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ── 카테고리 pill 헬퍼 ────────────────────────────────────────
+function getCatValues(group) {
+  return [...group.querySelectorAll('.cat-pill.selected')].map(p => p.dataset.value);
+}
+
+function setCatValues(group, values) {
+  group.querySelectorAll('.cat-pill').forEach(p => {
+    p.classList.toggle('selected', values.includes(p.dataset.value));
+  });
+}
+
+function clearCatGroup(group) {
+  group.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('selected'));
 }
 
 function setLoading(on) {
@@ -133,8 +148,8 @@ function render() {
   itemsGrid.innerHTML = '';
 
   const filtered = items.filter(item => {
-    if (filterMain && item.mainCategory !== filterMain) return false;
-    if (filterSub  && item.subCategory  !== filterSub)  return false;
+    if (filterMain && !(item.mainCategory || []).includes(filterMain)) return false;
+    if (filterSub  && !(item.subCategory  || []).includes(filterSub))  return false;
     return true;
   });
 
@@ -177,11 +192,10 @@ function render() {
       ? `<div class="card-vendor" style="margin-top:8px">📝 ${escapeHtml(item.note)}</div>`
       : '';
 
-    const categoryHtml = (item.mainCategory || item.subCategory)
-      ? `<div class="card-category">
-           ${item.mainCategory ? `<span class="cat-badge main">${item.mainCategory}</span>` : ''}
-           ${item.subCategory  ? `<span class="cat-badge sub">${item.subCategory}</span>`   : ''}
-         </div>`
+    const mainBadges = (item.mainCategory || []).map(c => `<span class="cat-badge main">${c}</span>`).join('');
+    const subBadges  = (item.subCategory  || []).map(c => `<span class="cat-badge sub">${c}</span>`).join('');
+    const categoryHtml = (mainBadges || subBadges)
+      ? `<div class="card-category">${mainBadges}${subBadges}</div>`
       : '';
 
     const isDirect = item.deliveryType === 'direct';
@@ -386,6 +400,8 @@ function openModal(id = null) {
   imagePlaceholder.style.display = '';
   imageRemove.hidden = true;
   itemUnitPrice.value = '';
+  clearCatGroup(itemMainCatGroup);
+  clearCatGroup(itemSubCatGroup);
   setDeliveryType('own');
   document.getElementById('modalTitle').textContent = id ? '항목 수정' : '항목 추가';
 
@@ -400,8 +416,8 @@ function openModal(id = null) {
     itemOrderUrl.value     = item.orderUrl     || '';
     itemOptions.value      = item.options      || '';
     itemNote.value         = item.note         || '';
-    itemMainCategory.value = item.mainCategory || '';
-    itemSubCategory.value  = item.subCategory  || '';
+    setCatValues(itemMainCatGroup, item.mainCategory || []);
+    setCatValues(itemSubCatGroup,  item.subCategory  || []);
     setDeliveryType(item.deliveryType || 'own');
     updateUnitPrice();
 
@@ -511,8 +527,8 @@ async function saveItem() {
     note         : itemNote.value.trim()     || '',
     image        : imagePreview.hidden ? '' : imagePreview.src,
     deliveryType  : itemDeliveryType.value,
-    mainCategory  : itemMainCategory.value || '',
-    subCategory   : itemSubCategory.value  || '',
+    mainCategory  : getCatValues(itemMainCatGroup),
+    subCategory   : getCatValues(itemSubCatGroup),
     createdAt     : editingId
       ? (items.find(i => i.id === editingId)?.createdAt || new Date().toISOString())
       : new Date().toISOString(),
@@ -604,6 +620,15 @@ document.getElementById('subFilter').addEventListener('click', (e) => {
 
 deliveryOwnBtn.addEventListener('click', () => setDeliveryType('own'));
 deliveryDirectBtn.addEventListener('click', () => setDeliveryType('direct'));
+
+// 카테고리 pill 토글
+[itemMainCatGroup, itemSubCatGroup].forEach(group => {
+  group.addEventListener('click', (e) => {
+    const pill = e.target.closest('.cat-pill');
+    if (!pill) return;
+    pill.classList.toggle('selected');
+  });
+});
 
 itemQty.addEventListener('input', updateUnitPrice);
 itemTotal.addEventListener('input', updateUnitPrice);

@@ -70,27 +70,28 @@
             </div>
           </div>
 
-          <div class="form-row three-col" style="grid-template-columns: 1fr 1fr;">
-            <div class="form-group">
-              <label>대분류 <span class="hint">(복사 시 제외)</span></label>
-              <select id="itemMainCategory">
-                <option value="">선택 안함</option>
-                <option value="매장">매장</option>
-                <option value="호텔">호텔</option>
-                <option value="병원">병원</option>
-              </select>
+          <div class="form-row">
+            <div class="form-group full">
+              <label>대분류 <span class="hint">(복사 시 제외 · 다중 선택 가능)</span></label>
+              <div class="cat-pill-group" id="itemMainCategory">
+                <button type="button" class="cat-pill" data-value="매장">매장</button>
+                <button type="button" class="cat-pill" data-value="호텔">호텔</button>
+                <button type="button" class="cat-pill" data-value="병원">병원</button>
+              </div>
             </div>
-            <div class="form-group">
-              <label>소분류 <span class="hint">(복사 시 제외)</span></label>
-              <select id="itemSubCategory">
-                <option value="">선택 안함</option>
-                <option value="리플렛">리플렛</option>
-                <option value="와블러">와블러</option>
-                <option value="봉투">봉투</option>
-                <option value="스티커">스티커</option>
-                <option value="배너">배너</option>
-                <option value="POP">POP</option>
-              </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label>소분류 <span class="hint">(복사 시 제외 · 다중 선택 가능)</span></label>
+              <div class="cat-pill-group" id="itemSubCategory">
+                <button type="button" class="cat-pill" data-value="리플렛">리플렛</button>
+                <button type="button" class="cat-pill" data-value="와블러">와블러</button>
+                <button type="button" class="cat-pill" data-value="봉투">봉투</button>
+                <button type="button" class="cat-pill" data-value="스티커">스티커</button>
+                <button type="button" class="cat-pill" data-value="배너">배너</button>
+                <button type="button" class="cat-pill" data-value="POP">POP</button>
+              </div>
             </div>
           </div>
 
