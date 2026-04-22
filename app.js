@@ -8,18 +8,20 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ── DB 변환 헬퍼 ──────────────────────────────────────────────
 function rowToItem(row) {
   return {
-    id           : row.id,
-    name         : row.name,
-    qty          : row.qty,
-    total        : row.total,
-    vendor       : row.vendor,
-    url          : row.url          || '',
-    orderUrl     : row.order_url    || '',
-    options      : row.options      || '',
-    note         : row.note         || '',
-    image        : row.image        || '',
-    deliveryType : row.delivery_type || 'own',
-    createdAt    : row.created_at,
+    id            : row.id,
+    name          : row.name,
+    qty           : row.qty,
+    total         : row.total,
+    vendor        : row.vendor,
+    url           : row.url           || '',
+    orderUrl      : row.order_url     || '',
+    options       : row.options       || '',
+    note          : row.note          || '',
+    image         : row.image         || '',
+    deliveryType  : row.delivery_type || 'own',
+    mainCategory  : row.main_category || '',
+    subCategory   : row.sub_category  || '',
+    createdAt     : row.created_at,
   };
 }
 
@@ -36,15 +38,19 @@ function itemToRow(item) {
     note          : item.note         || '',
     image         : item.image        || '',
     delivery_type : item.deliveryType || 'own',
+    main_category : item.mainCategory || '',
+    sub_category  : item.subCategory  || '',
     created_at    : item.createdAt,
   };
 }
 
 // ── 상태 ──────────────────────────────────────────────────────
-let items      = [];
-let editingId  = null;
-let deletingId = null;
-let selectedIds = new Set();
+let items        = [];
+let editingId    = null;
+let deletingId   = null;
+let selectedIds  = new Set();
+let filterMain   = '';
+let filterSub    = '';
 
 // ── DOM refs ──────────────────────────────────────────────────
 const itemsGrid    = document.getElementById('itemsGrid');
@@ -78,6 +84,9 @@ const selectBar      = document.getElementById('selectBar');
 const selectCount    = document.getElementById('selectCount');
 const selectClearBtn = document.getElementById('selectClearBtn');
 const selectCopyBtn  = document.getElementById('selectCopyBtn');
+
+const itemMainCategory = document.getElementById('itemMainCategory');
+const itemSubCategory  = document.getElementById('itemSubCategory');
 
 // ── Utils ─────────────────────────────────────────────────────
 function uid() {
@@ -123,13 +132,19 @@ async function removeItem(id) {
 function render() {
   itemsGrid.innerHTML = '';
 
-  if (items.length === 0) {
+  const filtered = items.filter(item => {
+    if (filterMain && item.mainCategory !== filterMain) return false;
+    if (filterSub  && item.subCategory  !== filterSub)  return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
     emptyState.classList.add('visible');
     return;
   }
   emptyState.classList.remove('visible');
 
-  items.forEach(item => {
+  filtered.forEach(item => {
     const card = document.createElement('div');
     card.className = 'item-card';
     card.dataset.id = item.id;
@@ -160,6 +175,13 @@ function render() {
 
     const noteHtml = item.note
       ? `<div class="card-vendor" style="margin-top:8px">📝 ${escapeHtml(item.note)}</div>`
+      : '';
+
+    const categoryHtml = (item.mainCategory || item.subCategory)
+      ? `<div class="card-category">
+           ${item.mainCategory ? `<span class="cat-badge main">${item.mainCategory}</span>` : ''}
+           ${item.subCategory  ? `<span class="cat-badge sub">${item.subCategory}</span>`   : ''}
+         </div>`
       : '';
 
     const isDirect = item.deliveryType === 'direct';
@@ -195,6 +217,7 @@ function render() {
             <div class="meta-value">${item.total ? formatNumber(item.total) + ' 원' : '-'}</div>
           </div>
         </div>
+        ${categoryHtml}
         ${deliveryBadge}
         ${vendorHtml}
         ${urlHtml}
@@ -369,14 +392,16 @@ function openModal(id = null) {
   if (id) {
     const item = items.find(i => i.id === id);
     if (!item) return;
-    itemName.value     = item.name     || '';
-    itemQty.value      = item.qty      || '';
-    itemTotal.value    = item.total    || '';
-    itemVendor.value   = item.vendor   || '';
-    itemUrl.value      = item.url      || '';
-    itemOrderUrl.value = item.orderUrl || '';
-    itemOptions.value  = item.options  || '';
-    itemNote.value     = item.note     || '';
+    itemName.value         = item.name         || '';
+    itemQty.value          = item.qty          || '';
+    itemTotal.value        = item.total        || '';
+    itemVendor.value       = item.vendor       || '';
+    itemUrl.value          = item.url          || '';
+    itemOrderUrl.value     = item.orderUrl     || '';
+    itemOptions.value      = item.options      || '';
+    itemNote.value         = item.note         || '';
+    itemMainCategory.value = item.mainCategory || '';
+    itemSubCategory.value  = item.subCategory  || '';
     setDeliveryType(item.deliveryType || 'own');
     updateUnitPrice();
 
@@ -485,8 +510,10 @@ async function saveItem() {
     options      : itemOptions.value.trim()  || '',
     note         : itemNote.value.trim()     || '',
     image        : imagePreview.hidden ? '' : imagePreview.src,
-    deliveryType : itemDeliveryType.value,
-    createdAt    : editingId
+    deliveryType  : itemDeliveryType.value,
+    mainCategory  : itemMainCategory.value || '',
+    subCategory   : itemSubCategory.value  || '',
+    createdAt     : editingId
       ? (items.find(i => i.id === editingId)?.createdAt || new Date().toISOString())
       : new Date().toISOString(),
   };
@@ -552,6 +579,28 @@ itemsGrid.addEventListener('click', (e) => {
 
 selectClearBtn.addEventListener('click', clearSelection);
 selectCopyBtn.addEventListener('click', copySelected);
+
+// 필터 클릭
+document.getElementById('mainFilter').addEventListener('click', (e) => {
+  const pill = e.target.closest('.filter-pill');
+  if (!pill) return;
+  filterMain = pill.dataset.main;
+  filterSub  = '';
+  document.querySelectorAll('#mainFilter .filter-pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#subFilter .filter-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  document.querySelector('#subFilter .filter-pill[data-sub=""]').classList.add('active');
+  render();
+});
+
+document.getElementById('subFilter').addEventListener('click', (e) => {
+  const pill = e.target.closest('.filter-pill');
+  if (!pill) return;
+  filterSub = pill.dataset.sub;
+  document.querySelectorAll('#subFilter .filter-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  render();
+});
 
 deliveryOwnBtn.addEventListener('click', () => setDeliveryType('own'));
 deliveryDirectBtn.addEventListener('click', () => setDeliveryType('direct'));
