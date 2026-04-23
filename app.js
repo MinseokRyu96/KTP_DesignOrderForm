@@ -933,6 +933,7 @@ async function saveHistoryRecord() {
     // 최근 발주일 갱신
     await fetchLatestOrders();
     render();
+    renderInventory();
     renderHistoryList();
     closeHistoryForm();
     showToast('✅ 저장됐습니다.');
@@ -962,6 +963,7 @@ async function deleteHistoryRecord(id) {
   }
   await fetchLatestOrders();
   render();
+  renderInventory();
   renderHistoryList();
   showToast('삭제됐습니다.');
 }
