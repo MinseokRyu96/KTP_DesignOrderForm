@@ -2,7 +2,7 @@
 
 디자인물 발주를 관리하고, 지출결의서 작성 시 필요한 내용을 빠르게 복사할 수 있는 사내 웹 툴입니다.
 
-🔗 **배포 주소**: [https://ktpdesignorder.netlify.app](https://ktpdesignorder.netlify.app)
+🔗 **배포 주소**: [https://ktp-design-order-form.vercel.app](https://ktp-design-order-form.vercel.app)
 
 ---
 
@@ -103,21 +103,24 @@ URL : https://www.swadpia.co.kr/...
 | Database | [Supabase](https://supabase.com) (PostgreSQL) |
 | 이미지 저장 | Supabase Storage (`item-images` 버킷) |
 | 실시간 동기화 | Supabase Realtime |
-| 호스팅 | [Netlify](https://netlify.com) |
+| 호스팅 | [Vercel](https://vercel.com) |
 
 ---
 
 ## 로컬 실행
 
 별도 빌드 과정 없이 `index.html`을 브라우저에서 열면 되지만,  
-Supabase 연결은 **배포 URL(Netlify)** 에서만 정상 동작합니다.
+Supabase 연결은 **배포 URL(Vercel)** 에서만 정상 동작합니다.
 
 ```bash
 # 파일 구조
 OrderForm/
-├── index.html   # 메인 페이지
-├── styles.css   # 스타일
-├── app.js       # 기능 로직 (Supabase 연동)
+├── index.html    # 메인 페이지
+├── styles.css    # 스타일
+├── app.js        # 기능 로직 (Supabase 연동)
+├── favicon.svg   # 파비콘
+├── build.sh      # Vercel 빌드 시 config.js 생성
+├── vercel.json   # Vercel 배포 설정
 └── README.md
 ```
 
