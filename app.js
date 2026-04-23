@@ -931,79 +931,215 @@ historyList.addEventListener('click', (e) => {
 });
 
 // ── 재고현황 ──────────────────────────────────────────────────
-let inventoryMap = {}; // item_id -> inventory record
+let distRecordsMap    = {}; // item_id -> array of records (date desc)
+let latestDistMap     = {}; // item_id -> latest record
+let currentDistItemId = null;
+let distRecords       = [];
 
 async function fetchInventory() {
-  const { data, error } = await db.from('inventory').select('*');
+  const { data, error } = await db
+    .from('inventory')
+    .select('*')
+    .order('distribution_date', { ascending: false });
   if (error) return;
-  inventoryMap = {};
-  (data || []).forEach(row => { inventoryMap[row.item_id] = row; });
-}
-
-async function upsertInventoryField(itemId, field, value) {
-  const existing = inventoryMap[itemId];
-  const record = existing
-    ? { ...existing, [field]: value || null, updated_at: new Date().toISOString() }
-    : { id: uid(), item_id: itemId, [field]: value || null };
-  const { error } = await db.from('inventory').upsert(record);
-  if (error) { showToast('❌ 저장 중 오류가 발생했습니다.'); return; }
-  inventoryMap[itemId] = { ...inventoryMap[itemId], ...record };
+  distRecordsMap = {};
+  latestDistMap  = {};
+  (data || []).forEach(row => {
+    if (!distRecordsMap[row.item_id]) distRecordsMap[row.item_id] = [];
+    distRecordsMap[row.item_id].push(row);
+    if (!latestDistMap[row.item_id]) latestDistMap[row.item_id] = row;
+  });
 }
 
 function renderInventory() {
   const tbody = document.getElementById('inventoryBody');
   if (!tbody) return;
   tbody.innerHTML = '';
-
   items.forEach(item => {
-    const inv = inventoryMap[item.id] || {};
+    const latest = latestDistMap[item.id];
     const tr = document.createElement('tr');
-    tr.dataset.itemId = item.id;
     tr.innerHTML = `
       <td class="inv-name">${escapeHtml(item.name)}</td>
       <td class="inv-readonly">${latestOrderMap[item.id] || '-'}</td>
-      <td class="inv-cell" data-field="distribution_location">${escapeHtml(inv.distribution_location || '')}</td>
-      <td class="inv-cell inv-date" data-field="distribution_date">${inv.distribution_date || ''}</td>
-      <td class="inv-cell inv-num" data-field="distribution_qty">${inv.distribution_qty ?? ''}</td>
-      <td class="inv-cell inv-num" data-field="remaining_qty">${inv.remaining_qty ?? ''}</td>
+      <td class="inv-readonly">${escapeHtml(latest?.distribution_location || '-')}</td>
+      <td class="inv-readonly">${latest?.distribution_date || '-'}</td>
+      <td class="inv-readonly inv-num">${latest?.distribution_qty ?? '-'}</td>
+      <td class="inv-readonly inv-num">${latest?.remaining_qty ?? '-'}</td>
+      <td><button class="btn-dist-history" data-id="${item.id}">📋 히스토리</button></td>
     `;
     tbody.appendChild(tr);
   });
 }
 
 document.getElementById('inventoryBody').addEventListener('click', (e) => {
-  const cell = e.target.closest('.inv-cell');
-  if (!cell || cell.querySelector('input')) return;
+  const btn = e.target.closest('.btn-dist-history');
+  if (!btn) return;
+  openDistModal(btn.dataset.id);
+});
 
-  const field = cell.dataset.field;
-  const itemId = cell.closest('tr').dataset.itemId;
-  const currentValue = cell.textContent.trim();
+// ── 배부 히스토리 모달 ─────────────────────────────────────────
+const distOverlay    = document.getElementById('distOverlay');
+const distSubtitle   = document.getElementById('distSubtitle');
+const distList       = document.getElementById('distList');
+const distEmpty      = document.getElementById('distEmpty');
+const distFormFields = document.getElementById('distFormFields');
+const distFormTitle  = document.getElementById('distFormTitle');
+const distEditId     = document.getElementById('distEditId');
+const dDate          = document.getElementById('dDate');
+const dLocation      = document.getElementById('dLocation');
+const dQty           = document.getElementById('dQty');
+const dRemaining     = document.getElementById('dRemaining');
 
-  const inputType = field === 'distribution_date' ? 'date'
-    : (field === 'distribution_qty' || field === 'remaining_qty') ? 'number' : 'text';
+function openDistForm(record = null) {
+  distEditId.value = record ? record.id : '';
+  dDate.value      = record ? (record.distribution_date || '') : new Date().toISOString().slice(0, 10);
+  dLocation.value  = record ? (record.distribution_location || '') : '';
+  dQty.value       = record ? (record.distribution_qty ?? '') : '';
+  dRemaining.value = record ? (record.remaining_qty ?? '') : '';
+  distFormTitle.textContent = record ? '✏️ 배부 수정' : '+ 새 배부 추가';
+  distFormFields.classList.add('open');
+  dDate.focus();
+}
 
-  const input = document.createElement('input');
-  input.type = inputType;
-  input.value = currentValue;
-  input.className = 'inv-input';
-  cell.textContent = '';
-  cell.appendChild(input);
-  input.focus();
+function closeDistForm() {
+  distFormFields.classList.remove('open');
+  distFormTitle.textContent = '+ 새 배부 추가';
+  distEditId.value = '';
+  dDate.value = ''; dLocation.value = ''; dQty.value = ''; dRemaining.value = '';
+}
 
-  let saved = false;
-  async function save() {
-    if (saved) return;
-    saved = true;
-    const newValue = input.value.trim();
-    await upsertInventoryField(itemId, field, newValue);
-    cell.textContent = newValue;
+function renderDistList() {
+  distList.innerHTML = '';
+  if (distRecords.length === 0) {
+    distList.appendChild(distEmpty);
+    distEmpty.style.display = '';
+    return;
   }
-
-  input.addEventListener('blur', save);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') input.blur();
-    if (e.key === 'Escape') { saved = true; cell.textContent = currentValue; }
+  distEmpty.style.display = 'none';
+  const sorted = [...distRecords].sort((a, b) =>
+    (b.distribution_date || '').localeCompare(a.distribution_date || ''));
+  sorted.forEach(rec => {
+    const row = document.createElement('div');
+    row.className = 'dist-row';
+    row.innerHTML = `
+      <div>
+        <div class="hrow-label">배부일자</div>
+        <div class="hrow-value">${rec.distribution_date || '-'}</div>
+      </div>
+      <div>
+        <div class="hrow-label">배부장소</div>
+        <div class="hrow-value">${escapeHtml(rec.distribution_location || '-')}</div>
+      </div>
+      <div>
+        <div class="hrow-label">배부개수</div>
+        <div class="hrow-value">${rec.distribution_qty ?? '-'}</div>
+      </div>
+      <div>
+        <div class="hrow-label">잔량</div>
+        <div class="hrow-value accent">${rec.remaining_qty ?? '-'}</div>
+      </div>
+      <div class="hrow-actions">
+        <button class="btn-hrow" data-daction="edit" data-did="${rec.id}">수정</button>
+        <button class="btn-hrow danger" data-daction="delete" data-did="${rec.id}">삭제</button>
+      </div>
+    `;
+    distList.appendChild(row);
   });
+}
+
+async function openDistModal(itemId) {
+  currentDistItemId = itemId;
+  const item = items.find(i => i.id === itemId);
+  distSubtitle.textContent = item ? item.name : '';
+  closeDistForm();
+  distOverlay.classList.add('open');
+
+  const { data, error } = await db
+    .from('inventory')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('distribution_date', { ascending: false });
+  distRecords = error ? [] : (data || []);
+  renderDistList();
+}
+
+function closeDistModal() {
+  distOverlay.classList.remove('open');
+  currentDistItemId = null;
+  distRecords = [];
+}
+
+async function saveDistRecord() {
+  const date = dDate.value;
+  if (!date) { dDate.focus(); showToast('⚠️ 배부일자를 입력하세요.'); return; }
+
+  const editId = distEditId.value;
+  const record = {
+    id                    : editId || uid(),
+    item_id               : currentDistItemId,
+    distribution_date     : date,
+    distribution_location : dLocation.value.trim() || null,
+    distribution_qty      : dQty.value !== '' ? parseFloat(dQty.value) : null,
+    remaining_qty         : dRemaining.value !== '' ? parseFloat(dRemaining.value) : null,
+    updated_at            : new Date().toISOString(),
+  };
+
+  const btn = document.getElementById('dSaveBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+
+  try {
+    const { error } = await db.from('inventory').upsert(record);
+    if (error) throw error;
+    if (editId) {
+      const idx = distRecords.findIndex(r => r.id === editId);
+      if (idx !== -1) distRecords[idx] = record;
+    } else {
+      distRecords.unshift(record);
+    }
+    await fetchInventory();
+    renderInventory();
+    renderDistList();
+    closeDistForm();
+    showToast('✅ 저장됐습니다.');
+  } catch (e) {
+    showToast('❌ 저장 중 오류가 발생했습니다.');
+    console.error(e);
+  } finally {
+    btn.disabled = false; btn.textContent = '저장';
+  }
+}
+
+async function deleteDistRecord(id) {
+  const { error } = await db.from('inventory').delete().eq('id', id);
+  if (error) { showToast('❌ 삭제 중 오류가 발생했습니다.'); return; }
+  distRecords = distRecords.filter(r => r.id !== id);
+  await fetchInventory();
+  renderInventory();
+  renderDistList();
+  showToast('삭제됐습니다.');
+}
+
+document.getElementById('distClose').addEventListener('click', closeDistModal);
+document.getElementById('distDoneBtn').addEventListener('click', closeDistModal);
+document.getElementById('distAddBtn').addEventListener('click', () => openDistForm());
+document.getElementById('distFormTitle').addEventListener('click', () => {
+  if (distFormFields.classList.contains('open')) closeDistForm();
+  else openDistForm();
+});
+document.getElementById('dSaveBtn').addEventListener('click', saveDistRecord);
+document.getElementById('dCancelBtn').addEventListener('click', closeDistForm);
+
+distOverlay.addEventListener('click', (e) => { if (e.target === distOverlay) closeDistModal(); });
+
+distList.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-daction]');
+  if (!btn) return;
+  const { daction, did } = btn.dataset;
+  if (daction === 'edit') {
+    const rec = distRecords.find(r => r.id === did);
+    if (rec) openDistForm(rec);
+  }
+  if (daction === 'delete') deleteDistRecord(did);
 });
 
 // ── 탭 전환 ───────────────────────────────────────────────────

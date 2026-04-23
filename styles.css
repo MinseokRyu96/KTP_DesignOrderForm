@@ -1278,15 +1278,47 @@ textarea {
 .inv-date { min-width: 130px; }
 .inv-num  { min-width: 90px; text-align: right; }
 
-.inv-input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
+.btn-dist-history {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
   font-family: inherit;
-  color: var(--gray-900);
-  padding: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-dist-history:hover {
+  background: #dbeafe;
+}
+
+/* ── 배부 히스토리 리스트 ── */
+.dist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.dist-row {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 120px 1fr 100px 100px auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 580px;
+  transition: box-shadow 0.15s;
+}
+
+.dist-row:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── Responsive ── */
