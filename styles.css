@@ -313,6 +313,12 @@ select:focus {
   background: var(--gray-50);
   border-bottom: 1px solid var(--gray-100);
   display: block;
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+}
+
+.card-image:hover {
+  opacity: 0.9;
 }
 
 .card-image-placeholder {
@@ -1249,7 +1255,36 @@ textarea {
 .inv-name {
   font-weight: 600;
   color: var(--gray-900);
-  min-width: 200px;
+  min-width: 220px;
+}
+
+.inv-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inv-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.inv-thumb-placeholder {
+  width: 40px;
+  height: 40px;
+  background: var(--gray-100);
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  color: var(--gray-300);
 }
 
 .inv-readonly {
@@ -1319,6 +1354,55 @@ textarea {
 
 .dist-row:hover {
   box-shadow: var(--shadow-sm);
+}
+
+/* ── 라이트박스 ── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.lightbox.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: var(--white);
+  border-radius: 50%;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.lightbox-close:hover {
+  background: rgba(255,255,255,0.28);
 }
 
 /* ── Responsive ── */

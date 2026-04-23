@@ -637,6 +637,9 @@ document.getElementById('deleteConfirmBtn').addEventListener('click', confirmDel
 deleteOverlay.addEventListener('click', (e) => { if (e.target === deleteOverlay) closeDeleteModal(); });
 
 itemsGrid.addEventListener('click', (e) => {
+  const img = e.target.closest('.card-image');
+  if (img) { openLightbox(img.src); return; }
+
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const { action, id } = btn.dataset;
@@ -645,6 +648,26 @@ itemsGrid.addEventListener('click', (e) => {
   if (action === 'edit')    openModal(id);
   if (action === 'delete')  openDeleteModal(id);
   if (action === 'select')  toggleSelect(id);
+});
+
+// ── 라이트박스 ────────────────────────────────────────────────
+const lightbox    = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('open');
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  lightboxImg.src = '';
+}
+
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
 });
 
 selectClearBtn.addEventListener('click', clearSelection);
@@ -958,8 +981,11 @@ function renderInventory() {
   items.forEach(item => {
     const latest = latestDistMap[item.id];
     const tr = document.createElement('tr');
+    const thumbHtml = item.image
+      ? `<img class="inv-thumb" src="${item.image}" alt="">`
+      : `<div class="inv-thumb-placeholder">🖼</div>`;
     tr.innerHTML = `
-      <td class="inv-name">${escapeHtml(item.name)}</td>
+      <td class="inv-name"><div class="inv-name-wrap">${thumbHtml}<span>${escapeHtml(item.name)}</span></div></td>
       <td class="inv-readonly">${latestOrderMap[item.id] || '-'}</td>
       <td class="inv-readonly">${escapeHtml(latest?.distribution_location || '-')}</td>
       <td class="inv-readonly">${latest?.distribution_date || '-'}</td>
