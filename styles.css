@@ -299,6 +299,7 @@ select:focus {
   overflow: hidden;
   box-shadow: var(--shadow);
   transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
 }
 
 .item-card:hover {
@@ -542,6 +543,11 @@ select:focus {
 .card-latest-order strong {
   color: var(--gray-600);
   font-weight: 700;
+}
+
+.item-card .card-actions .btn,
+.item-card a {
+  cursor: pointer;
 }
 
 .stock-toggle-row {

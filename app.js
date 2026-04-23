@@ -664,14 +664,23 @@ itemsGrid.addEventListener('click', (e) => {
   if (img) { openLightbox(img.src); return; }
 
   const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  const { action, id } = btn.dataset;
-  if (action === 'copy')         copyItem(id);
-  if (action === 'history')      openHistoryModal(id);
-  if (action === 'edit')         openModal(id);
-  if (action === 'delete')       openDeleteModal(id);
-  if (action === 'select')       toggleSelect(id);
-  if (action === 'toggle-stock') toggleManageStock(id);
+  if (btn) {
+    const { action, id } = btn.dataset;
+    if (action === 'copy')         copyItem(id);
+    if (action === 'history')      openHistoryModal(id);
+    if (action === 'edit')         openModal(id);
+    if (action === 'delete')       openDeleteModal(id);
+    if (action === 'select')       toggleSelect(id);
+    if (action === 'toggle-stock') toggleManageStock(id);
+    return;
+  }
+
+  // 링크 클릭은 그냥 통과
+  if (e.target.closest('a')) return;
+
+  // 카드 어디든 클릭하면 선택 토글
+  const card = e.target.closest('.item-card');
+  if (card) toggleSelect(card.dataset.id);
 });
 
 // ── 라이트박스 ────────────────────────────────────────────────
