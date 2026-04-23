@@ -686,7 +686,7 @@ select:focus {
   border-radius: var(--radius);
   padding: 14px 16px;
   display: grid;
-  grid-template-columns: 110px 80px 1fr 1fr 1fr auto;
+  grid-template-columns: 130px 90px 110px 150px 2fr auto;
   align-items: center;
   gap: 12px;
   transition: box-shadow 0.15s;
@@ -709,6 +709,7 @@ select:focus {
   font-size: 14px;
   font-weight: 600;
   color: var(--gray-800);
+  white-space: nowrap;
 }
 
 .hrow-value.accent {
