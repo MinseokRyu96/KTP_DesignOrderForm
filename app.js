@@ -1030,7 +1030,7 @@ document.getElementById('inventoryBody').addEventListener('click', (e) => {
       if (saved) return; saved = true;
       const newValue = input.value !== '' ? parseFloat(input.value) : null;
       const { error } = await db.from('items').update({ initial_qty: newValue }).eq('id', itemId);
-      if (error) { showToast('❌ 저장 중 오류'); renderInventory(); return; }
+      if (error) { console.error('initial_qty 저장 오류:', error); showToast('❌ ' + error.message); renderInventory(); return; }
       const item = items.find(i => i.id === itemId);
       if (item) item.initialQty = newValue;
       renderInventory();
