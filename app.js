@@ -922,6 +922,13 @@ async function saveHistoryRecord() {
       if (idx !== -1) historyRecords[idx] = record;
     } else {
       historyRecords.unshift(record);
+      // 재고관리 항목이면 처음 개수에 발주 수량 자동 합산
+      const item = items.find(i => i.id === currentHistoryItemId);
+      if (item?.manageStock) {
+        const newInitialQty = (item.initialQty || 0) + qty;
+        const { error: qtyError } = await db.from('items').update({ initial_qty: newInitialQty }).eq('id', item.id);
+        if (!qtyError) item.initialQty = newInitialQty;
+      }
     }
     // 최근 발주일 갱신
     await fetchLatestOrders();
