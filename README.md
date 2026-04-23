@@ -2,7 +2,7 @@
 
 디자인물 발주를 관리하고, 지출결의서 작성 시 필요한 내용을 빠르게 복사할 수 있는 사내 웹 툴입니다.
 
-🔗 **배포 주소**: [https://ktp-design-order-form.vercel.app](https://ktp-design-order-form.vercel.app)
+🔗 **배포 주소**: [https://ktpdesign.vercel.app](https://ktpdesign.vercel.app)
 
 ---
 
