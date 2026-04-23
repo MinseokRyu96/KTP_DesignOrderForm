@@ -644,6 +644,9 @@ async function saveItem() {
       createdAt    : editingId
         ? (items.find(i => i.id === editingId)?.createdAt || new Date().toISOString())
         : new Date().toISOString(),
+      manageStock  : editingId
+        ? (items.find(i => i.id === editingId)?.manageStock ?? false)
+        : false,
     };
 
     await upsertItem(data);
