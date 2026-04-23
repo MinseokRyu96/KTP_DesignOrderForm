@@ -1325,6 +1325,26 @@ textarea {
   white-space: nowrap;
 }
 
+.inv-init-qty {
+  cursor: pointer;
+  min-width: 90px;
+}
+
+.inv-init-qty:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.inv-placeholder {
+  font-size: 11px;
+  color: var(--gray-300);
+}
+
+.inv-negative {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .btn-dist-history {
   padding: 4px 10px;
   font-size: 11px;
@@ -1357,10 +1377,10 @@ textarea {
   border-radius: var(--radius);
   padding: 14px 16px;
   display: grid;
-  grid-template-columns: 120px 1fr 100px 100px auto;
+  grid-template-columns: 120px 1fr 100px auto;
   align-items: center;
   gap: 12px;
-  min-width: 580px;
+  min-width: 480px;
   transition: box-shadow 0.15s;
 }
 

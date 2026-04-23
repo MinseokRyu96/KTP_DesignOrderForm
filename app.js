@@ -20,6 +20,7 @@ function rowToItem(row) {
     mainCategory  : Array.isArray(row.main_category) ? row.main_category : [],
     subCategory   : Array.isArray(row.sub_category)  ? row.sub_category  : [],
     createdAt     : row.created_at,
+    initialQty    : row.initial_qty ?? null,
   };
 }
 
@@ -39,6 +40,7 @@ function itemToRow(item) {
     main_category : item.mainCategory || [],
     sub_category  : item.subCategory  || [],
     created_at    : item.createdAt,
+    initial_qty   : item.initialQty ?? null,
   };
 }
 
@@ -974,23 +976,34 @@ async function fetchInventory() {
   });
 }
 
+function calcRemaining(itemId) {
+  const item = items.find(i => i.id === itemId);
+  if (item?.initialQty == null) return '-';
+  const totalDist = (distRecordsMap[itemId] || [])
+    .reduce((sum, r) => sum + (Number(r.distribution_qty) || 0), 0);
+  return item.initialQty - totalDist;
+}
+
 function renderInventory() {
   const tbody = document.getElementById('inventoryBody');
   if (!tbody) return;
   tbody.innerHTML = '';
   items.forEach(item => {
-    const latest = latestDistMap[item.id];
+    const latest  = latestDistMap[item.id];
+    const remaining = calcRemaining(item.id);
     const tr = document.createElement('tr');
+    tr.dataset.itemId = item.id;
     const thumbHtml = item.image
       ? `<img class="inv-thumb" src="${item.image}" alt="">`
       : `<div class="inv-thumb-placeholder">🖼</div>`;
     tr.innerHTML = `
       <td class="inv-name"><div class="inv-name-wrap">${thumbHtml}<span>${escapeHtml(item.name)}</span></div></td>
       <td class="inv-readonly">${latestOrderMap[item.id] || '-'}</td>
+      <td class="inv-init-qty inv-num" data-value="${item.initialQty ?? ''}">${item.initialQty ?? '<span class="inv-placeholder">클릭하여 입력</span>'}</td>
       <td class="inv-readonly">${escapeHtml(latest?.distribution_location || '-')}</td>
       <td class="inv-readonly">${latest?.distribution_date || '-'}</td>
       <td class="inv-readonly inv-num">${latest?.distribution_qty ?? '-'}</td>
-      <td class="inv-readonly inv-num">${latest?.remaining_qty ?? '-'}</td>
+      <td class="inv-readonly inv-num${remaining !== '-' && remaining < 0 ? ' inv-negative' : ''}">${remaining}</td>
       <td><button class="btn-dist-history" data-id="${item.id}">📋 히스토리</button></td>
     `;
     tbody.appendChild(tr);
@@ -1000,6 +1013,35 @@ function renderInventory() {
 document.getElementById('inventoryBody').addEventListener('click', (e) => {
   const thumb = e.target.closest('.inv-thumb');
   if (thumb) { openLightbox(thumb.src); return; }
+
+  const initCell = e.target.closest('.inv-init-qty');
+  if (initCell && !initCell.querySelector('input')) {
+    const itemId = initCell.closest('tr').dataset.itemId;
+    const currentValue = initCell.dataset.value || '';
+    const input = document.createElement('input');
+    input.type = 'number'; input.value = currentValue; input.min = '0';
+    input.className = 'inv-input';
+    initCell.innerHTML = '';
+    initCell.appendChild(input);
+    input.focus(); input.select();
+
+    let saved = false;
+    async function saveInitQty() {
+      if (saved) return; saved = true;
+      const newValue = input.value !== '' ? parseFloat(input.value) : null;
+      const { error } = await db.from('items').update({ initial_qty: newValue }).eq('id', itemId);
+      if (error) { showToast('❌ 저장 중 오류'); renderInventory(); return; }
+      const item = items.find(i => i.id === itemId);
+      if (item) item.initialQty = newValue;
+      renderInventory();
+    }
+    input.addEventListener('blur', saveInitQty);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') { saved = true; renderInventory(); }
+    });
+    return;
+  }
 
   const btn = e.target.closest('.btn-dist-history');
   if (!btn) return;
@@ -1017,14 +1059,12 @@ const distEditId     = document.getElementById('distEditId');
 const dDate          = document.getElementById('dDate');
 const dLocation      = document.getElementById('dLocation');
 const dQty           = document.getElementById('dQty');
-const dRemaining     = document.getElementById('dRemaining');
 
 function openDistForm(record = null) {
   distEditId.value = record ? record.id : '';
   dDate.value      = record ? (record.distribution_date || '') : new Date().toISOString().slice(0, 10);
   dLocation.value  = record ? (record.distribution_location || '') : '';
   dQty.value       = record ? (record.distribution_qty ?? '') : '';
-  dRemaining.value = record ? (record.remaining_qty ?? '') : '';
   distFormTitle.textContent = record ? '✏️ 배부 수정' : '+ 새 배부 추가';
   distFormFields.classList.add('open');
   dDate.focus();
@@ -1034,7 +1074,7 @@ function closeDistForm() {
   distFormFields.classList.remove('open');
   distFormTitle.textContent = '+ 새 배부 추가';
   distEditId.value = '';
-  dDate.value = ''; dLocation.value = ''; dQty.value = ''; dRemaining.value = '';
+  dDate.value = ''; dLocation.value = ''; dQty.value = '';
 }
 
 function renderDistList() {
@@ -1062,10 +1102,6 @@ function renderDistList() {
       <div>
         <div class="hrow-label">배부개수</div>
         <div class="hrow-value">${rec.distribution_qty ?? '-'}</div>
-      </div>
-      <div>
-        <div class="hrow-label">잔량</div>
-        <div class="hrow-value accent">${rec.remaining_qty ?? '-'}</div>
       </div>
       <div class="hrow-actions">
         <button class="btn-hrow" data-daction="edit" data-did="${rec.id}">수정</button>
@@ -1109,7 +1145,6 @@ async function saveDistRecord() {
     distribution_date     : date,
     distribution_location : dLocation.value.trim() || null,
     distribution_qty      : dQty.value !== '' ? parseFloat(dQty.value) : null,
-    remaining_qty         : dRemaining.value !== '' ? parseFloat(dRemaining.value) : null,
     updated_at            : new Date().toISOString(),
   };
 
