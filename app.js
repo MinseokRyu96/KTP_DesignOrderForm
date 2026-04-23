@@ -998,6 +998,9 @@ function renderInventory() {
 }
 
 document.getElementById('inventoryBody').addEventListener('click', (e) => {
+  const thumb = e.target.closest('.inv-thumb');
+  if (thumb) { openLightbox(thumb.src); return; }
+
   const btn = e.target.closest('.btn-dist-history');
   if (!btn) return;
   openDistModal(btn.dataset.id);

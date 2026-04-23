@@ -1271,6 +1271,12 @@ textarea {
   border-radius: 6px;
   border: 1px solid var(--gray-200);
   flex-shrink: 0;
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+}
+
+.inv-thumb:hover {
+  opacity: 0.8;
 }
 
 .inv-thumb-placeholder {
