@@ -65,9 +65,20 @@
     <!-- 재고현황 탭 -->
     <div id="tabInventory" class="tab-pane">
       <main class="main-content">
-        <div class="empty-state visible">
-          <div class="empty-icon">📦</div>
-          <p>재고현황 기능을 준비 중입니다.</p>
+        <div class="inventory-wrap">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>품목명</th>
+                <th>최근 발주일</th>
+                <th>배부장소</th>
+                <th>배부일자</th>
+                <th>배부개수</th>
+                <th>잔량</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryBody"></tbody>
+          </table>
         </div>
       </main>
     </div>

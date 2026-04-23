@@ -1199,6 +1199,96 @@ textarea {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ── 재고현황 테이블 ── */
+.inventory-wrap {
+  overflow-x: auto;
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+
+.inventory-table thead th {
+  background: var(--gray-50);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--gray-200);
+  white-space: nowrap;
+}
+
+.inventory-table tbody tr {
+  border-bottom: 1px solid var(--gray-100);
+  transition: background 0.1s;
+}
+
+.inventory-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.inventory-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.inventory-table td {
+  padding: 12px 16px;
+  color: var(--gray-700);
+  vertical-align: middle;
+}
+
+.inv-name {
+  font-weight: 600;
+  color: var(--gray-900);
+  min-width: 200px;
+}
+
+.inv-readonly {
+  color: var(--gray-400);
+  white-space: nowrap;
+}
+
+.inv-cell {
+  cursor: pointer;
+  min-width: 110px;
+  position: relative;
+}
+
+.inv-cell:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.inv-cell:empty::after,
+.inv-cell[data-empty]::after {
+  content: '클릭하여 입력';
+  color: var(--gray-300);
+  font-size: 12px;
+}
+
+.inv-date { min-width: 130px; }
+.inv-num  { min-width: 90px; text-align: right; }
+
+.inv-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--gray-900);
+  padding: 0;
+}
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .app-header {

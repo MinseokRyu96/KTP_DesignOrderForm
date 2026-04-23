@@ -930,8 +930,84 @@ historyList.addEventListener('click', (e) => {
   if (haction === 'delete') deleteHistoryRecord(hid);
 });
 
+// ── 재고현황 ──────────────────────────────────────────────────
+let inventoryMap = {}; // item_id -> inventory record
+
+async function fetchInventory() {
+  const { data, error } = await db.from('inventory').select('*');
+  if (error) return;
+  inventoryMap = {};
+  (data || []).forEach(row => { inventoryMap[row.item_id] = row; });
+}
+
+async function upsertInventoryField(itemId, field, value) {
+  const existing = inventoryMap[itemId];
+  const record = existing
+    ? { ...existing, [field]: value || null, updated_at: new Date().toISOString() }
+    : { id: uid(), item_id: itemId, [field]: value || null };
+  const { error } = await db.from('inventory').upsert(record);
+  if (error) { showToast('❌ 저장 중 오류가 발생했습니다.'); return; }
+  inventoryMap[itemId] = { ...inventoryMap[itemId], ...record };
+}
+
+function renderInventory() {
+  const tbody = document.getElementById('inventoryBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  items.forEach(item => {
+    const inv = inventoryMap[item.id] || {};
+    const tr = document.createElement('tr');
+    tr.dataset.itemId = item.id;
+    tr.innerHTML = `
+      <td class="inv-name">${escapeHtml(item.name)}</td>
+      <td class="inv-readonly">${latestOrderMap[item.id] || '-'}</td>
+      <td class="inv-cell" data-field="distribution_location">${escapeHtml(inv.distribution_location || '')}</td>
+      <td class="inv-cell inv-date" data-field="distribution_date">${inv.distribution_date || ''}</td>
+      <td class="inv-cell inv-num" data-field="distribution_qty">${inv.distribution_qty ?? ''}</td>
+      <td class="inv-cell inv-num" data-field="remaining_qty">${inv.remaining_qty ?? ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('inventoryBody').addEventListener('click', (e) => {
+  const cell = e.target.closest('.inv-cell');
+  if (!cell || cell.querySelector('input')) return;
+
+  const field = cell.dataset.field;
+  const itemId = cell.closest('tr').dataset.itemId;
+  const currentValue = cell.textContent.trim();
+
+  const inputType = field === 'distribution_date' ? 'date'
+    : (field === 'distribution_qty' || field === 'remaining_qty') ? 'number' : 'text';
+
+  const input = document.createElement('input');
+  input.type = inputType;
+  input.value = currentValue;
+  input.className = 'inv-input';
+  cell.textContent = '';
+  cell.appendChild(input);
+  input.focus();
+
+  let saved = false;
+  async function save() {
+    if (saved) return;
+    saved = true;
+    const newValue = input.value.trim();
+    await upsertInventoryField(itemId, field, newValue);
+    cell.textContent = newValue;
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { saved = true; cell.textContent = currentValue; }
+  });
+});
+
 // ── 탭 전환 ───────────────────────────────────────────────────
-document.querySelector('.tab-bar').addEventListener('click', (e) => {
+document.querySelector('.tab-bar').addEventListener('click', async (e) => {
   const btn = e.target.closest('.tab-btn');
   if (!btn) return;
   const tab = btn.dataset.tab;
@@ -941,8 +1017,12 @@ document.querySelector('.tab-bar').addEventListener('click', (e) => {
 
   btn.classList.add('active');
   document.getElementById(tab === 'design' ? 'tabDesign' : 'tabInventory').classList.add('active');
-
   document.getElementById('addItemBtn').style.display = tab === 'design' ? '' : 'none';
+
+  if (tab === 'inventory') {
+    await fetchInventory();
+    renderInventory();
+  }
 });
 
 // ── Init ──────────────────────────────────────────────────────
