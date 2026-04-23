@@ -25,34 +25,62 @@
     <!-- 디자인물 탭 -->
     <div id="tabDesign" class="tab-pane active">
       <div class="filter-bar" id="filterBar">
-        <div class="filter-row">
-          <span class="filter-label">대분류</span>
-          <div class="filter-pills" id="mainFilter">
-            <button class="filter-pill active" data-main="">전체</button>
-            <button class="filter-pill" data-main="매장">매장</button>
-            <button class="filter-pill" data-main="호텔">호텔</button>
-            <button class="filter-pill" data-main="병원">병원</button>
-            <button class="filter-pill" data-main="약국">약국</button>
+        <div class="filter-bar-filters">
+          <div class="filter-row">
+            <span class="filter-label">대분류</span>
+            <div class="filter-pills" id="mainFilter">
+              <button class="filter-pill active" data-main="">전체</button>
+              <button class="filter-pill" data-main="매장">매장</button>
+              <button class="filter-pill" data-main="호텔">호텔</button>
+              <button class="filter-pill" data-main="병원">병원</button>
+              <button class="filter-pill" data-main="약국">약국</button>
+            </div>
+          </div>
+          <div class="filter-row" id="subFilterRow">
+            <span class="filter-label">소분류</span>
+            <div class="filter-pills" id="subFilter">
+              <button class="filter-pill active" data-sub="">전체</button>
+              <button class="filter-pill" data-sub="리플렛">리플렛</button>
+              <button class="filter-pill" data-sub="와블러">와블러</button>
+              <button class="filter-pill" data-sub="봉투">봉투</button>
+              <button class="filter-pill" data-sub="스티커">스티커</button>
+              <button class="filter-pill" data-sub="배너">배너</button>
+              <button class="filter-pill" data-sub="POP">POP</button>
+              <button class="filter-pill" data-sub="기타">기타</button>
+            </div>
           </div>
         </div>
-        <div class="filter-row" id="subFilterRow">
-          <span class="filter-label">소분류</span>
-          <div class="filter-pills" id="subFilter">
-            <button class="filter-pill active" data-sub="">전체</button>
-            <button class="filter-pill" data-sub="리플렛">리플렛</button>
-            <button class="filter-pill" data-sub="와블러">와블러</button>
-            <button class="filter-pill" data-sub="봉투">봉투</button>
-            <button class="filter-pill" data-sub="스티커">스티커</button>
-            <button class="filter-pill" data-sub="배너">배너</button>
-            <button class="filter-pill" data-sub="POP">POP</button>
-            <button class="filter-pill" data-sub="기타">기타</button>
-          </div>
+        <div class="view-toggle">
+          <button class="view-btn" id="viewCardBtn" title="카드 보기">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          </button>
+          <button class="view-btn" id="viewListBtn" title="리스트 보기">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>
+          </button>
         </div>
       </div>
 
       <main class="main-content">
-        <div class="items-grid" id="itemsGrid">
-          <!-- items rendered here -->
+        <div class="items-grid" id="itemsGrid"></div>
+        <div class="items-list-wrap" id="itemsListWrap" style="display:none">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width:36px"></th>
+                <th>품목명</th>
+                <th>카테고리</th>
+                <th class="col-num">수량</th>
+                <th class="col-num">단가</th>
+                <th class="col-num">총금액</th>
+                <th>발주처</th>
+                <th>배송</th>
+                <th>최근 발주일</th>
+                <th>재고관리</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="itemsListBody"></tbody>
+          </table>
         </div>
         <div class="empty-state" id="emptyState">
           <div class="empty-icon">📋</div>

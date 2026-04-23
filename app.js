@@ -54,6 +54,7 @@ let selectedIds    = new Set();
 let filterMain     = '';
 let filterSub      = '';
 let latestOrderMap = {};
+let viewMode       = localStorage.getItem('designViewMode') || 'card';
 let pendingImageFile = null; // Storage 업로드 대기 중인 파일
 
 // ── DOM refs ──────────────────────────────────────────────────
@@ -167,64 +168,46 @@ async function removeItem(id) {
 }
 
 // ── Render ────────────────────────────────────────────────────
-function render() {
-  itemsGrid.innerHTML = '';
-
-  const filtered = items.filter(item => {
+function getFilteredItems() {
+  return items.filter(item => {
     if (filterMain && !(item.mainCategory || []).includes(filterMain)) return false;
     if (filterSub  && !(item.subCategory  || []).includes(filterSub))  return false;
     return true;
   });
+}
 
-  if (filtered.length === 0) {
-    emptyState.classList.add('visible');
-    return;
-  }
-  emptyState.classList.remove('visible');
+function render() {
+  const filtered = getFilteredItems();
+  const isEmpty  = filtered.length === 0;
 
+  itemsGrid.style.display          = (!isEmpty && viewMode === 'card') ? '' : 'none';
+  document.getElementById('itemsListWrap').style.display = (!isEmpty && viewMode === 'list') ? '' : 'none';
+  emptyState.classList.toggle('visible', isEmpty);
+  if (isEmpty) return;
+
+  if (viewMode === 'card') renderCards(filtered);
+  else                     renderList(filtered);
+}
+
+function renderCards(filtered) {
+  itemsGrid.innerHTML = '';
   filtered.forEach(item => {
     const card = document.createElement('div');
     card.className = 'item-card';
     card.dataset.id = item.id;
 
-    const unitPrice = item.qty && item.total
-      ? Math.round(item.total / item.qty)
-      : null;
+    const unitPrice = item.qty && item.total ? Math.round(item.total / item.qty) : null;
 
     const imageHtml = item.image
       ? `<img class="card-image" src="${item.image}" alt="${item.name}">`
       : `<div class="card-image-placeholder">🖼<span>이미지 없음</span></div>`;
 
-    const vendorHtml = item.vendor
-      ? `<div class="card-vendor">📦 ${escapeHtml(item.vendor)}</div>`
-      : '';
-
-    const urlHtml = item.url
-      ? `<div class="card-vendor">🔗 <a href="${item.url}" target="_blank" rel="noopener">${item.url}</a></div>`
-      : '';
-
-    const orderUrlHtml = item.orderUrl
-      ? `<div class="card-vendor card-order-url">📌 <a href="${item.orderUrl}" target="_blank" rel="noopener">${item.orderUrl}</a><span class="url-badge">주문URL</span></div>`
-      : '';
-
-    const optionsHtml = item.options
-      ? `<div class="card-options">${escapeHtml(item.options)}</div>`
-      : '';
-
-    const noteHtml = item.note
-      ? `<div class="card-vendor" style="margin-top:8px">📝 ${escapeHtml(item.note)}</div>`
-      : '';
-
     const mainBadges = (item.mainCategory || []).map(c => `<span class="cat-badge main">${c}</span>`).join('');
     const subBadges  = (item.subCategory  || []).map(c => `<span class="cat-badge sub">${c}</span>`).join('');
-    const categoryHtml = (mainBadges || subBadges)
-      ? `<div class="card-category">${mainBadges}${subBadges}</div>`
-      : '';
+    const categoryHtml = (mainBadges || subBadges) ? `<div class="card-category">${mainBadges}${subBadges}</div>` : '';
 
     const latestOrder = latestOrderMap[item.id];
-    const latestOrderHtml = latestOrder
-      ? `<div class="card-latest-order">🕒 최근 발주일 <strong>${latestOrder}</strong></div>`
-      : '';
+    const latestOrderHtml = latestOrder ? `<div class="card-latest-order">🕒 최근 발주일 <strong>${latestOrder}</strong></div>` : '';
 
     const stockToggleHtml = `
       <div class="stock-toggle-row">
@@ -234,13 +217,8 @@ function render() {
       </div>`;
 
     const isDirect = item.deliveryType === 'direct';
-    const deliveryBadge = isDirect
-      ? `<span class="delivery-badge direct">🚚 직배송</span>`
-      : `<span class="delivery-badge own">🏢 자사 배송</span>`;
-
-    const deliveryInfoHtml = isDirect
-      ? `<div class="card-delivery-info">📍 배송지 주소 :<br>👤 담당자명 :&nbsp;&nbsp;📞 연락처 :</div>`
-      : '';
+    const deliveryBadge    = isDirect ? `<span class="delivery-badge direct">🚚 직배송</span>` : `<span class="delivery-badge own">🏢 자사 배송</span>`;
+    const deliveryInfoHtml = isDirect ? `<div class="card-delivery-info">📍 배송지 주소 :<br>👤 담당자명 :&nbsp;&nbsp;📞 연락처 :</div>` : '';
 
     const isSelected = selectedIds.has(item.id);
     if (isSelected) card.classList.add('selected');
@@ -271,12 +249,12 @@ function render() {
         </div>
         ${categoryHtml}
         ${deliveryBadge}
-        ${vendorHtml}
-        ${urlHtml}
-        ${orderUrlHtml}
-        ${optionsHtml}
+        ${item.vendor ? `<div class="card-vendor">📦 ${escapeHtml(item.vendor)}</div>` : ''}
+        ${item.url ? `<div class="card-vendor">🔗 <a href="${item.url}" target="_blank" rel="noopener">${item.url}</a></div>` : ''}
+        ${item.orderUrl ? `<div class="card-vendor card-order-url">📌 <a href="${item.orderUrl}" target="_blank" rel="noopener">${item.orderUrl}</a><span class="url-badge">주문URL</span></div>` : ''}
+        ${item.options ? `<div class="card-options">${escapeHtml(item.options)}</div>` : ''}
         ${deliveryInfoHtml}
-        ${noteHtml}
+        ${item.note ? `<div class="card-vendor" style="margin-top:8px">📝 ${escapeHtml(item.note)}</div>` : ''}
         ${latestOrderHtml}
         ${stockToggleHtml}
       </div>
@@ -286,8 +264,62 @@ function render() {
         <button class="btn btn-delete" data-action="delete" data-id="${item.id}">🗑</button>
       </div>
     `;
-
     itemsGrid.appendChild(card);
+  });
+}
+
+function renderList(filtered) {
+  const tbody = document.getElementById('itemsListBody');
+  tbody.innerHTML = '';
+  filtered.forEach(item => {
+    const unitPrice  = item.qty && item.total ? Math.round(item.total / item.qty) : null;
+    const isDirect   = item.deliveryType === 'direct';
+    const latestOrder = latestOrderMap[item.id];
+    const isSelected  = selectedIds.has(item.id);
+
+    const mainBadges = (item.mainCategory || []).map(c => `<span class="cat-badge main">${c}</span>`).join('');
+    const subBadges  = (item.subCategory  || []).map(c => `<span class="cat-badge sub">${c}</span>`).join('');
+
+    const thumbHtml = item.image
+      ? `<img class="inv-thumb" src="${item.image}" alt="" data-action="zoom" data-src="${item.image}">`
+      : `<div class="inv-thumb-placeholder">🖼</div>`;
+
+    const tr = document.createElement('tr');
+    tr.dataset.id = item.id;
+    if (isSelected) tr.classList.add('selected');
+
+    tr.innerHTML = `
+      <td><input type="checkbox" class="list-checkbox" data-action="select" data-id="${item.id}" ${isSelected ? 'checked' : ''}></td>
+      <td>
+        <div class="list-name-wrap">
+          ${thumbHtml}
+          <div>
+            <div class="list-name">${escapeHtml(item.name)}</div>
+            ${item.vendor ? `<div style="font-size:11px;color:var(--gray-400);margin-top:2px">${escapeHtml(item.vendor)}</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td><div class="list-cat">${mainBadges}${subBadges}</div></td>
+      <td class="col-num">${item.qty ? formatNumber(item.qty) : '-'}</td>
+      <td class="col-num">${unitPrice !== null ? formatNumber(unitPrice) + ' 원' : '-'}</td>
+      <td class="col-num">${item.total ? formatNumber(item.total) + ' 원' : '-'}</td>
+      <td style="white-space:nowrap">${isDirect ? '<span class="delivery-badge direct" style="font-size:11px">🚚 직배송</span>' : '<span class="delivery-badge own" style="font-size:11px">🏢 자사</span>'}</td>
+      <td style="white-space:nowrap;color:var(--gray-400);font-size:13px">${latestOrder || '-'}</td>
+      <td>
+        <button class="btn-stock-toggle${item.manageStock ? ' active' : ''}" style="font-size:10px;padding:3px 8px" data-action="toggle-stock" data-id="${item.id}">
+          ${item.manageStock ? 'ON' : 'OFF'}
+        </button>
+      </td>
+      <td>
+        <div class="list-actions">
+          <button class="btn btn-copy" style="font-size:11px;padding:5px 8px" data-action="copy" data-id="${item.id}">📋</button>
+          <button class="btn-history-inline" style="font-size:11px;padding:4px 8px" data-action="history" data-id="${item.id}">발주내역</button>
+          <button class="btn btn-edit" style="font-size:11px;padding:5px 8px" data-action="edit" data-id="${item.id}">✏️</button>
+          <button class="btn btn-delete" style="font-size:11px;padding:5px 8px" data-action="delete" data-id="${item.id}">🗑</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
   });
 }
 
@@ -682,6 +714,41 @@ itemsGrid.addEventListener('click', (e) => {
   const card = e.target.closest('.item-card');
   if (card) toggleSelect(card.dataset.id);
 });
+
+// ── 리스트 뷰 클릭 핸들러 ────────────────────────────────────
+document.getElementById('itemsListWrap').addEventListener('click', (e) => {
+  const zoomImg = e.target.closest('[data-action="zoom"]');
+  if (zoomImg) { openLightbox(zoomImg.dataset.src); return; }
+
+  const btn = e.target.closest('[data-action]');
+  if (btn) {
+    const { action, id } = btn.dataset;
+    if (action === 'copy')         copyItem(id);
+    if (action === 'history')      openHistoryModal(id);
+    if (action === 'edit')         openModal(id);
+    if (action === 'delete')       openDeleteModal(id);
+    if (action === 'select')       toggleSelect(id);
+    if (action === 'toggle-stock') toggleManageStock(id);
+    return;
+  }
+
+  if (e.target.closest('a')) return;
+
+  const tr = e.target.closest('tr[data-id]');
+  if (tr) toggleSelect(tr.dataset.id);
+});
+
+// ── 뷰 토글 ──────────────────────────────────────────────────
+function setViewMode(mode) {
+  viewMode = mode;
+  localStorage.setItem('designViewMode', mode);
+  document.getElementById('viewCardBtn').classList.toggle('active', mode === 'card');
+  document.getElementById('viewListBtn').classList.toggle('active', mode === 'list');
+  render();
+}
+
+document.getElementById('viewCardBtn').addEventListener('click', () => setViewMode('card'));
+document.getElementById('viewListBtn').addEventListener('click', () => setViewMode('list'));
 
 // ── 라이트박스 ────────────────────────────────────────────────
 const lightbox    = document.getElementById('lightbox');
@@ -1312,6 +1379,10 @@ document.querySelector('.tab-bar').addEventListener('click', async (e) => {
 
 // ── Init ──────────────────────────────────────────────────────
 (async () => {
+  // 뷰 토글 초기 상태
+  document.getElementById('viewCardBtn').classList.toggle('active', viewMode === 'card');
+  document.getElementById('viewListBtn').classList.toggle('active', viewMode === 'list');
+
   setLoading(true);
   [items] = await Promise.all([fetchItems(), fetchLatestOrders()]);
   render();

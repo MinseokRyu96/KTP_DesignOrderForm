@@ -119,8 +119,47 @@ body {
   border-bottom: 1px solid var(--gray-200);
   padding: 12px 24px;
   display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.filter-bar-filters {
+  flex: 1;
+  display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--gray-400);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.view-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.view-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
 }
 
 .filter-row {
@@ -1380,6 +1419,103 @@ textarea {
 .inv-negative {
   color: var(--danger);
   font-weight: 700;
+}
+
+/* ── 디자인물 리스트 뷰 ── */
+.items-list-wrap {
+  overflow-x: auto;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+
+.items-table thead th {
+  background: var(--gray-50);
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--gray-200);
+  white-space: nowrap;
+}
+
+.items-table thead th.col-num {
+  text-align: right;
+}
+
+.items-table tbody tr {
+  border-bottom: 1px solid var(--gray-100);
+  transition: background 0.1s;
+  cursor: pointer;
+}
+
+.items-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.items-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.items-table tbody tr.selected {
+  background: #eff6ff;
+}
+
+.items-table td {
+  padding: 10px 14px;
+  color: var(--gray-700);
+  vertical-align: middle;
+}
+
+.items-table td.col-num {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--gray-600);
+}
+
+.list-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+}
+
+.list-name {
+  font-weight: 600;
+  color: var(--gray-900);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.list-cat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.list-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.list-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
 }
 
 .btn-inv-history {
