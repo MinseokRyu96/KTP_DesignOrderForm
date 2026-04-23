@@ -998,7 +998,10 @@ function renderInventory() {
       : `<div class="inv-thumb-placeholder">🖼</div>`;
     tr.innerHTML = `
       <td class="inv-name"><div class="inv-name-wrap">${thumbHtml}<span>${escapeHtml(item.name)}</span></div></td>
-      <td class="inv-readonly">${latestOrderMap[item.id] || '-'}</td>
+      <td class="inv-readonly">
+        ${latestOrderMap[item.id] || '-'}
+        <button class="btn-inv-history" data-id="${item.id}">내역</button>
+      </td>
       <td class="inv-init-qty inv-num" data-value="${item.initialQty ?? ''}">${item.initialQty ?? '<span class="inv-placeholder">클릭하여 입력</span>'}</td>
       <td class="inv-readonly">${escapeHtml(latest?.distribution_location || '-')}</td>
       <td class="inv-readonly">${latest?.distribution_date || '-'}</td>
@@ -1042,6 +1045,9 @@ document.getElementById('inventoryBody').addEventListener('click', (e) => {
     });
     return;
   }
+
+  const histBtn = e.target.closest('.btn-inv-history');
+  if (histBtn) { openHistoryModal(histBtn.dataset.id); return; }
 
   const btn = e.target.closest('.btn-dist-history');
   if (!btn) return;
