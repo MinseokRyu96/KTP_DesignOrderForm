@@ -1428,7 +1428,7 @@ textarea {
   border-radius: var(--radius);
   padding: 14px 16px;
   display: grid;
-  grid-template-columns: 120px 1fr 100px auto;
+  grid-template-columns: 120px 1fr 1fr 100px auto;
   align-items: center;
   gap: 12px;
   min-width: 480px;

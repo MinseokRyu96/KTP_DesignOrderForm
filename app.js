@@ -1046,6 +1046,7 @@ function renderInventory() {
       </td>
       <td class="inv-init-qty inv-num" data-value="${item.initialQty ?? ''}">${item.initialQty ?? '<span class="inv-placeholder">클릭하여 입력</span>'}</td>
       <td class="inv-readonly">${escapeHtml(latest?.distribution_location || '-')}</td>
+      <td class="inv-readonly">${escapeHtml(latest?.assignee || '-')}</td>
       <td class="inv-readonly">${latest?.distribution_date || '-'}</td>
       <td class="inv-readonly inv-num">${latest?.distribution_qty ?? '-'}</td>
       <td class="inv-readonly inv-num${remaining !== '-' && remaining < 0 ? ' inv-negative' : ''}">${remaining}</td>
@@ -1106,12 +1107,14 @@ const distFormTitle  = document.getElementById('distFormTitle');
 const distEditId     = document.getElementById('distEditId');
 const dDate          = document.getElementById('dDate');
 const dLocation      = document.getElementById('dLocation');
+const dAssignee      = document.getElementById('dAssignee');
 const dQty           = document.getElementById('dQty');
 
 function openDistForm(record = null) {
   distEditId.value = record ? record.id : '';
   dDate.value      = record ? (record.distribution_date || '') : new Date().toISOString().slice(0, 10);
   dLocation.value  = record ? (record.distribution_location || '') : '';
+  dAssignee.value  = record ? (record.assignee || '') : '';
   dQty.value       = record ? (record.distribution_qty ?? '') : '';
   distFormTitle.textContent = record ? '✏️ 배부 수정' : '+ 새 배부 추가';
   distFormFields.classList.add('open');
@@ -1122,7 +1125,7 @@ function closeDistForm() {
   distFormFields.classList.remove('open');
   distFormTitle.textContent = '+ 새 배부 추가';
   distEditId.value = '';
-  dDate.value = ''; dLocation.value = ''; dQty.value = '';
+  dDate.value = ''; dLocation.value = ''; dAssignee.value = ''; dQty.value = '';
 }
 
 function renderDistList() {
@@ -1146,6 +1149,10 @@ function renderDistList() {
       <div>
         <div class="hrow-label">배부장소</div>
         <div class="hrow-value">${escapeHtml(rec.distribution_location || '-')}</div>
+      </div>
+      <div>
+        <div class="hrow-label">담당자</div>
+        <div class="hrow-value">${escapeHtml(rec.assignee || '-')}</div>
       </div>
       <div>
         <div class="hrow-label">배부개수</div>
@@ -1192,6 +1199,7 @@ async function saveDistRecord() {
     item_id               : currentDistItemId,
     distribution_date     : date,
     distribution_location : dLocation.value.trim() || null,
+    assignee              : dAssignee.value.trim() || null,
     distribution_qty      : dQty.value !== '' ? parseFloat(dQty.value) : null,
     updated_at            : new Date().toISOString(),
   };
