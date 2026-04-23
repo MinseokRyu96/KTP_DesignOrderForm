@@ -946,9 +946,20 @@ async function saveHistoryRecord() {
 }
 
 async function deleteHistoryRecord(id) {
+  const deletedRecord = historyRecords.find(r => r.id === id);
   const { error } = await db.from('order_history').delete().eq('id', id);
   if (error) { showToast('❌ 삭제 중 오류가 발생했습니다.'); return; }
   historyRecords = historyRecords.filter(r => r.id !== id);
+
+  // 재고관리 항목이면 처음 개수에서 삭제된 발주 수량 차감
+  if (deletedRecord) {
+    const item = items.find(i => i.id === currentHistoryItemId);
+    if (item?.manageStock && deletedRecord.quantity) {
+      const newInitialQty = (item.initialQty || 0) - deletedRecord.quantity;
+      const { error: qtyError } = await db.from('items').update({ initial_qty: newInitialQty }).eq('id', item.id);
+      if (!qtyError) item.initialQty = newInitialQty;
+    }
+  }
   await fetchLatestOrders();
   render();
   renderHistoryList();
