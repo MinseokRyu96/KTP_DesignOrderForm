@@ -11,7 +11,7 @@
 | 탭 | 설명 |
 |----|------|
 | 디자인물 | 발주 항목 관리, 지출결의서 복사, 발주내역 |
-| 재고현황 | 항목별 최근 배부 현황 표시, 📋 히스토리 버튼으로 전체 배부 이력 모달 확인 / 추가 / 수정 / 삭제 |
+| 재고현황 | **재고관리 ON** 항목만 표시, 배부 현황 / 히스토리 관리 |
 
 ---
 
@@ -42,6 +42,11 @@
 - 발주내역 추가 / 수정 / 삭제
 - 최근 발주일 기준 내림차순 정렬
 - 발주내역이 있는 카드에는 **🕒 최근 발주일** 자동 표시
+
+### 재고현황 관리
+- [디자인물] 탭 각 카드 하단 **📦 재고관리 ON/OFF** 버튼으로 재고 관리 대상 지정
+- 재고관리 ON 항목만 [재고현황] 탭에 표시
+- 배부 히스토리 추가/수정 시 해당 항목이 자동으로 테이블 상단으로 이동
 
 ### 카테고리 분류 및 필터
 - 항목마다 **대분류** (매장 / 호텔 / 병원 / 약국) + **소분류** (리플렛 / 와블러 / 봉투 / 스티커 / 배너 / POP / 기타) 지정
@@ -135,7 +140,8 @@ create table public.items (
   delivery_type text default 'own',
   created_at    timestamptz default now(),
   main_category text[] default '{}',
-  sub_category  text[] default '{}'
+  sub_category  text[] default '{}',
+  manage_stock  boolean default false
 );
 
 create table public.order_history (

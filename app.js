@@ -21,6 +21,7 @@ function rowToItem(row) {
     subCategory   : Array.isArray(row.sub_category)  ? row.sub_category  : [],
     createdAt     : row.created_at,
     initialQty    : row.initial_qty ?? null,
+    manageStock   : row.manage_stock ?? false,
   };
 }
 
@@ -41,6 +42,7 @@ function itemToRow(item) {
     sub_category  : item.subCategory  || [],
     created_at    : item.createdAt,
     initial_qty   : item.initialQty ?? null,
+    manage_stock  : item.manageStock ?? false,
   };
 }
 
@@ -224,6 +226,13 @@ function render() {
       ? `<div class="card-latest-order">🕒 최근 발주일 <strong>${latestOrder}</strong></div>`
       : '';
 
+    const stockToggleHtml = `
+      <div class="stock-toggle-row">
+        <button class="btn-stock-toggle${item.manageStock ? ' active' : ''}" data-action="toggle-stock" data-id="${item.id}">
+          📦 재고관리 ${item.manageStock ? 'ON' : 'OFF'}
+        </button>
+      </div>`;
+
     const isDirect = item.deliveryType === 'direct';
     const deliveryBadge = isDirect
       ? `<span class="delivery-badge direct">🚚 직배송</span>`
@@ -269,6 +278,7 @@ function render() {
         ${deliveryInfoHtml}
         ${noteHtml}
         ${latestOrderHtml}
+        ${stockToggleHtml}
       </div>
       <div class="card-actions">
         <button class="btn btn-copy" data-action="copy" data-id="${item.id}">📋 복사</button>
@@ -496,6 +506,17 @@ async function confirmDelete() {
   }
 }
 
+// ── 재고관리 토글 ──────────────────────────────────────────────
+async function toggleManageStock(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.manageStock = !item.manageStock;
+  const { error } = await db.from('items').update({ manage_stock: item.manageStock }).eq('id', id);
+  if (error) { item.manageStock = !item.manageStock; showToast('❌ ' + error.message); return; }
+  render();
+  showToast(item.manageStock ? '✅ 재고관리 항목에 추가됐습니다.' : '재고관리에서 제외됐습니다.');
+}
+
 // ── Auto-calculate unit price ─────────────────────────────────
 function updateUnitPrice() {
   const qty   = parseFloat(itemQty.value)   || 0;
@@ -645,11 +666,12 @@ itemsGrid.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const { action, id } = btn.dataset;
-  if (action === 'copy')    copyItem(id);
-  if (action === 'history') openHistoryModal(id);
-  if (action === 'edit')    openModal(id);
-  if (action === 'delete')  openDeleteModal(id);
-  if (action === 'select')  toggleSelect(id);
+  if (action === 'copy')         copyItem(id);
+  if (action === 'history')      openHistoryModal(id);
+  if (action === 'edit')         openModal(id);
+  if (action === 'delete')       openDeleteModal(id);
+  if (action === 'select')       toggleSelect(id);
+  if (action === 'toggle-stock') toggleManageStock(id);
 });
 
 // ── 라이트박스 ────────────────────────────────────────────────
@@ -989,7 +1011,17 @@ function renderInventory() {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  const sorted = [...items].sort((a, b) => {
+  const stockItems = items.filter(item => item.manageStock);
+
+  if (stockItems.length === 0) {
+    const colCount = document.querySelectorAll('#inventoryBody').length || 8;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--gray-400)">
+      [디자인물] 탭에서 <strong>📦 재고관리 ON</strong> 버튼을 눌러 항목을 추가하세요.
+    </td></tr>`;
+    return;
+  }
+
+  const sorted = stockItems.sort((a, b) => {
     const aMax = (distRecordsMap[a.id] || []).reduce((m, r) => r.updated_at > m ? r.updated_at : m, '');
     const bMax = (distRecordsMap[b.id] || []).reduce((m, r) => r.updated_at > m ? r.updated_at : m, '');
     if (!aMax && !bMax) return 0;
