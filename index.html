@@ -16,42 +16,61 @@
       <button class="btn btn-primary" id="addItemBtn">+ 항목 추가</button>
     </header>
 
-    <div class="filter-bar" id="filterBar">
-      <div class="filter-row">
-        <span class="filter-label">대분류</span>
-        <div class="filter-pills" id="mainFilter">
-          <button class="filter-pill active" data-main="">전체</button>
-          <button class="filter-pill" data-main="매장">매장</button>
-          <button class="filter-pill" data-main="호텔">호텔</button>
-          <button class="filter-pill" data-main="병원">병원</button>
-          <button class="filter-pill" data-main="약국">약국</button>
-        </div>
-      </div>
-      <div class="filter-row" id="subFilterRow">
-        <span class="filter-label">소분류</span>
-        <div class="filter-pills" id="subFilter">
-          <button class="filter-pill active" data-sub="">전체</button>
-          <button class="filter-pill" data-sub="리플렛">리플렛</button>
-          <button class="filter-pill" data-sub="와블러">와블러</button>
-          <button class="filter-pill" data-sub="봉투">봉투</button>
-          <button class="filter-pill" data-sub="스티커">스티커</button>
-          <button class="filter-pill" data-sub="배너">배너</button>
-          <button class="filter-pill" data-sub="POP">POP</button>
-          <button class="filter-pill" data-sub="기타">기타</button>
-        </div>
-      </div>
+    <!-- 탭 바 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="design">디자인물</button>
+      <button class="tab-btn" data-tab="inventory">재고현황</button>
     </div>
 
-    <main class="main-content">
-      <div class="items-grid" id="itemsGrid">
-        <!-- items rendered here -->
+    <!-- 디자인물 탭 -->
+    <div id="tabDesign" class="tab-pane active">
+      <div class="filter-bar" id="filterBar">
+        <div class="filter-row">
+          <span class="filter-label">대분류</span>
+          <div class="filter-pills" id="mainFilter">
+            <button class="filter-pill active" data-main="">전체</button>
+            <button class="filter-pill" data-main="매장">매장</button>
+            <button class="filter-pill" data-main="호텔">호텔</button>
+            <button class="filter-pill" data-main="병원">병원</button>
+            <button class="filter-pill" data-main="약국">약국</button>
+          </div>
+        </div>
+        <div class="filter-row" id="subFilterRow">
+          <span class="filter-label">소분류</span>
+          <div class="filter-pills" id="subFilter">
+            <button class="filter-pill active" data-sub="">전체</button>
+            <button class="filter-pill" data-sub="리플렛">리플렛</button>
+            <button class="filter-pill" data-sub="와블러">와블러</button>
+            <button class="filter-pill" data-sub="봉투">봉투</button>
+            <button class="filter-pill" data-sub="스티커">스티커</button>
+            <button class="filter-pill" data-sub="배너">배너</button>
+            <button class="filter-pill" data-sub="POP">POP</button>
+            <button class="filter-pill" data-sub="기타">기타</button>
+          </div>
+        </div>
       </div>
-      <div class="empty-state" id="emptyState">
-        <div class="empty-icon">📋</div>
-        <p>등록된 발주 항목이 없습니다.</p>
-        <p class="empty-sub">우측 상단 "+ 항목 추가" 버튼을 눌러 시작하세요.</p>
-      </div>
-    </main>
+
+      <main class="main-content">
+        <div class="items-grid" id="itemsGrid">
+          <!-- items rendered here -->
+        </div>
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📋</div>
+          <p>등록된 발주 항목이 없습니다.</p>
+          <p class="empty-sub">우측 상단 "+ 항목 추가" 버튼을 눌러 시작하세요.</p>
+        </div>
+      </main>
+    </div>
+
+    <!-- 재고현황 탭 -->
+    <div id="tabInventory" class="tab-pane">
+      <main class="main-content">
+        <div class="empty-state visible">
+          <div class="empty-icon">📦</div>
+          <p>재고현황 기능을 준비 중입니다.</p>
+        </div>
+      </main>
+    </div>
   </div>
 
   <!-- 항목 추가/수정 모달 -->
