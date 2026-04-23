@@ -988,7 +988,17 @@ function renderInventory() {
   const tbody = document.getElementById('inventoryBody');
   if (!tbody) return;
   tbody.innerHTML = '';
-  items.forEach(item => {
+
+  const sorted = [...items].sort((a, b) => {
+    const aMax = (distRecordsMap[a.id] || []).reduce((m, r) => r.updated_at > m ? r.updated_at : m, '');
+    const bMax = (distRecordsMap[b.id] || []).reduce((m, r) => r.updated_at > m ? r.updated_at : m, '');
+    if (!aMax && !bMax) return 0;
+    if (!aMax) return 1;
+    if (!bMax) return -1;
+    return bMax.localeCompare(aMax);
+  });
+
+  sorted.forEach(item => {
     const latest  = latestDistMap[item.id];
     const remaining = calcRemaining(item.id);
     const tr = document.createElement('tr');
