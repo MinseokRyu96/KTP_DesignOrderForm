@@ -1011,6 +1011,11 @@ select:focus {
   vertical-align: middle;
   white-space: nowrap;
 }
+.notion-badge {
+  background: #f0ede8;
+  color: #7b6f5e;
+  border-color: #d9d1c7;
+}
 
 .delivery-hint {
   font-size: 12px;

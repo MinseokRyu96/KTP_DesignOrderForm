@@ -13,6 +13,7 @@ function rowToItem(row) {
     vendor        : row.vendor,
     url           : row.url           || '',
     orderUrl      : row.order_url     || '',
+    notionUrl     : row.notion_url    || '',
     options       : row.options       || '',
     note          : row.note          || '',
     image         : row.image         || '',
@@ -34,6 +35,7 @@ function itemToRow(item) {
     vendor        : item.vendor,
     url           : item.url          || '',
     order_url     : item.orderUrl     || '',
+    notion_url    : item.notionUrl    || '',
     options       : item.options      || '',
     note          : item.note         || '',
     image         : item.image        || '',
@@ -72,6 +74,7 @@ const itemTotal     = document.getElementById('itemTotal');
 const itemVendor    = document.getElementById('itemVendor');
 const itemUrl       = document.getElementById('itemUrl');
 const itemOrderUrl  = document.getElementById('itemOrderUrl');
+const itemNotionUrl = document.getElementById('itemNotionUrl');
 const itemOptions   = document.getElementById('itemOptions');
 const itemNote      = document.getElementById('itemNote');
 const imageInput    = document.getElementById('imageInput');
@@ -251,7 +254,8 @@ function renderCards(filtered) {
         ${deliveryBadge}
         ${item.vendor ? `<div class="card-vendor">📦 ${escapeHtml(item.vendor)}</div>` : ''}
         ${item.url ? `<div class="card-vendor">🔗 <a href="${item.url}" target="_blank" rel="noopener">${item.url}</a></div>` : ''}
-        ${item.orderUrl ? `<div class="card-vendor card-order-url">📌 <a href="${item.orderUrl}" target="_blank" rel="noopener">${item.orderUrl}</a><span class="url-badge">주문URL</span></div>` : ''}
+        ${item.orderUrl   ? `<div class="card-vendor card-order-url">📌 <a href="${item.orderUrl}" target="_blank" rel="noopener">${item.orderUrl}</a><span class="url-badge">주문URL</span></div>` : ''}
+        ${item.notionUrl  ? `<div class="card-vendor card-order-url">📓 <a href="${item.notionUrl}" target="_blank" rel="noopener">${item.notionUrl}</a><span class="url-badge notion-badge">노션</span></div>` : ''}
         ${item.options ? `<div class="card-options">${escapeHtml(item.options)}</div>` : ''}
         ${deliveryInfoHtml}
         ${item.note ? `<div class="card-vendor" style="margin-top:8px">📝 ${escapeHtml(item.note)}</div>` : ''}
@@ -487,6 +491,7 @@ function openModal(id = null) {
     itemVendor.value       = item.vendor       || '';
     itemUrl.value          = item.url          || '';
     itemOrderUrl.value     = item.orderUrl     || '';
+    itemNotionUrl.value    = item.notionUrl    || '';
     itemOptions.value      = item.options      || '';
     itemNote.value         = item.note         || '';
     setCatValues(itemMainCatGroup, item.mainCategory || []);
@@ -633,8 +638,9 @@ async function saveItem() {
       qty,
       total        : isNaN(total) ? null : total,
       vendor,
-      url          : itemUrl.value.trim()      || '',
-      orderUrl     : itemOrderUrl.value.trim() || '',
+      url          : itemUrl.value.trim()         || '',
+      orderUrl     : itemOrderUrl.value.trim()    || '',
+      notionUrl    : itemNotionUrl.value.trim()   || '',
       options      : itemOptions.value.trim()  || '',
       note         : itemNote.value.trim()     || '',
       image        : imageUrl,
