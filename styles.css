@@ -170,6 +170,12 @@ body {
   padding: 0;
 }
 
+.search-input:focus {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
 .search-input::placeholder {
   color: var(--gray-400);
 }
