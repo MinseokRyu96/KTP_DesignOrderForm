@@ -65,6 +65,7 @@ function rowToHotel(row) {
     qrImage      : row.qr_image      || '',
     roomCount    : row.room_count ?? null,
     refundMethod : row.refund_method || 'kiosk',
+    kioskSize    : row.kiosk_size    || row.checklist?.kioskSize || 'large',
     checklist    : row.checklist     || {},
     address      : row.address       || '',
     createdAt    : row.created_at    || new Date().toISOString(),
@@ -81,7 +82,7 @@ function hotelToRow(hotel) {
     qr_image      : hotel.qrImage      || '',
     room_count    : hotel.roomCount ?? null,
     refund_method : hotel.refundMethod || 'kiosk',
-    checklist     : hotel.checklist    || {},
+    checklist     : { ...(hotel.checklist || {}), kioskSize: hotel.kioskSize || 'large' },
     address       : hotel.address      || '',
     created_at    : hotel.createdAt,
     updated_at    : hotel.updatedAt,
@@ -155,6 +156,10 @@ const hotelRoomCount   = document.getElementById('hotelRoomCount');
 const hotelRefundMethod = document.getElementById('hotelRefundMethod');
 const refundKioskBtn   = document.getElementById('refundKioskBtn');
 const refundAirportBtn = document.getElementById('refundAirportBtn');
+const hotelKioskSize   = document.getElementById('hotelKioskSize');
+const hotelKioskSizeValue = document.getElementById('hotelKioskSizeValue');
+const kioskLargeBtn    = document.getElementById('kioskLargeBtn');
+const kioskSmallBtn    = document.getElementById('kioskSmallBtn');
 const hotelQrUpload    = document.getElementById('hotelQrUpload');
 const hotelQrInput     = document.getElementById('hotelQrInput');
 const hotelQrPreview   = document.getElementById('hotelQrPreview');
@@ -483,6 +488,7 @@ function renderHotels() {
     const doneCount = getHotelDoneCount(hotel);
     const percent = Math.round((doneCount / HOTEL_DESIGN_KEYS.length) * 100);
     const refundLabel = hotel.refundMethod === 'airport' ? '공항' : '키오스크';
+    const kioskSizeLabel = hotel.kioskSize === 'small' ? '소형' : '대형';
     const qrHtml = hotel.qrImage
       ? `<img class="hotel-qr-thumb" src="${hotel.qrImage}" alt="${escapeHtml(hotel.nameKo)} QR">`
       : '<div class="hotel-qr-empty">QR</div>';
@@ -504,7 +510,7 @@ function renderHotels() {
         </div>
       </td>
       <td style="white-space:nowrap">${hotel.roomCount ? formatNumber(hotel.roomCount) + '실' : '-'}</td>
-      <td><span class="refund-badge ${hotel.refundMethod === 'airport' ? 'airport' : 'kiosk'}">${refundLabel}</span></td>
+      <td><span class="refund-badge ${hotel.refundMethod === 'airport' ? 'airport' : 'kiosk'}">${refundLabel}${hotel.refundMethod === 'kiosk' ? ` · ${kioskSizeLabel}` : ''}</span></td>
       <td>
         <div class="hotel-progress">
           <div class="hotel-progress-head"><span>${doneCount}/${HOTEL_DESIGN_KEYS.length}</span><span>${percent}%</span></div>
@@ -739,6 +745,13 @@ function setRefundMethod(method) {
   hotelRefundMethod.value = method;
   refundKioskBtn.classList.toggle('active', method === 'kiosk');
   refundAirportBtn.classList.toggle('active', method === 'airport');
+  hotelKioskSize.classList.toggle('open', method === 'kiosk');
+}
+
+function setKioskSize(size) {
+  hotelKioskSizeValue.value = size;
+  kioskLargeBtn.classList.toggle('active', size === 'large');
+  kioskSmallBtn.classList.toggle('active', size === 'small');
 }
 
 function setHotelQrImage(src) {
@@ -783,6 +796,7 @@ function openHotelModal(id = null) {
   hotelForm.reset();
   hotelId.value = id || '';
   setRefundMethod('kiosk');
+  setKioskSize('large');
   setHotelQrImage('');
   setHotelChecklistValues({});
   document.getElementById('hotelModalTitle').textContent = id ? '호텔 수정' : '호텔 추가';
@@ -796,6 +810,7 @@ function openHotelModal(id = null) {
     hotelUrlTouched = true;
     hotelRoomCount.value = hotel.roomCount ?? '';
     setRefundMethod(hotel.refundMethod || 'kiosk');
+    setKioskSize(hotel.kioskSize || 'large');
     setHotelQrImage(hotel.qrImage || '');
     setHotelChecklistValues(hotel.checklist || {});
     hotelAddress.value = hotel.address || '';
@@ -839,6 +854,7 @@ async function saveHotel() {
     qrImage      : pendingHotelQrImage,
     roomCount    : hotelRoomCount.value !== '' ? parseFloat(hotelRoomCount.value) : null,
     refundMethod : hotelRefundMethod.value,
+    kioskSize    : hotelRefundMethod.value === 'kiosk' ? hotelKioskSizeValue.value : '',
     checklist    : getHotelChecklistValues(),
     address      : hotelAddress.value.trim(),
     createdAt    : existing?.createdAt || now,
@@ -1090,6 +1106,8 @@ hotelUrl.addEventListener('input', () => {
 });
 refundKioskBtn.addEventListener('click', () => setRefundMethod('kiosk'));
 refundAirportBtn.addEventListener('click', () => setRefundMethod('airport'));
+kioskLargeBtn.addEventListener('click', () => setKioskSize('large'));
+kioskSmallBtn.addEventListener('click', () => setKioskSize('small'));
 hotelQrUpload.addEventListener('click', () => hotelQrInput.click());
 hotelQrInput.addEventListener('change', () => handleHotelQrFile(hotelQrInput.files[0]));
 hotelQrRemove.addEventListener('click', (e) => {

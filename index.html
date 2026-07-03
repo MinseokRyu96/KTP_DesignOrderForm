@@ -514,6 +514,14 @@
                 <button type="button" class="delivery-btn" id="refundAirportBtn" data-refund="airport">공항</button>
               </div>
               <input type="hidden" id="hotelRefundMethod" value="kiosk">
+              <div class="hotel-kiosk-size" id="hotelKioskSize">
+                <span>키오스크 유형</span>
+                <div class="delivery-toggle hotel-size-toggle">
+                  <button type="button" class="delivery-btn active" id="kioskLargeBtn" data-size="large">대형</button>
+                  <button type="button" class="delivery-btn" id="kioskSmallBtn" data-size="small">소형</button>
+                </div>
+                <input type="hidden" id="hotelKioskSizeValue" value="large">
+              </div>
             </div>
             <div class="form-group">
               <label>QR 이미지</label>

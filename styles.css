@@ -1044,6 +1044,12 @@ select:focus {
   color: var(--gray-700);
 }
 
+.delivery-btn.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
 .delivery-btn.active[data-type="own"] {
   border-color: var(--primary);
   background: var(--primary-light);
@@ -1781,6 +1787,33 @@ textarea {
 
 .hotel-refund-toggle .delivery-btn {
   min-height: 40px;
+}
+
+.hotel-kiosk-size {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+}
+
+.hotel-kiosk-size.open {
+  display: block;
+}
+
+.hotel-kiosk-size > span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hotel-size-toggle .delivery-btn {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 13px;
 }
 
 .hotel-check-grid {
