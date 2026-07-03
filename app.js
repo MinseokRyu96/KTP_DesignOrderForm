@@ -55,6 +55,7 @@ let deletingId     = null;
 let selectedIds    = new Set();
 let filterMain     = '';
 let filterSub      = '';
+let searchQuery    = '';
 let latestOrderMap = {};
 let viewMode       = localStorage.getItem('designViewMode') || 'card';
 let pendingImageFile = null; // Storage 업로드 대기 중인 파일
@@ -172,9 +173,11 @@ async function removeItem(id) {
 
 // ── Render ────────────────────────────────────────────────────
 function getFilteredItems() {
+  const q = searchQuery.trim().toLowerCase();
   return items.filter(item => {
     if (filterMain && !(item.mainCategory || []).includes(filterMain)) return false;
     if (filterSub  && !(item.subCategory  || []).includes(filterSub))  return false;
+    if (q && !item.name.toLowerCase().includes(q)) return false;
     return true;
   });
 }
@@ -806,6 +809,24 @@ document.getElementById('subFilter').addEventListener('click', (e) => {
 
 deliveryOwnBtn.addEventListener('click', () => setDeliveryType('own'));
 deliveryDirectBtn.addEventListener('click', () => setDeliveryType('direct'));
+
+// 검색
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
+
+searchInput.addEventListener('input', () => {
+  searchQuery = searchInput.value;
+  searchClear.hidden = !searchQuery;
+  render();
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchQuery = '';
+  searchClear.hidden = true;
+  searchInput.focus();
+  render();
+});
 
 // 카테고리 pill 토글
 [itemMainCatGroup, itemSubCatGroup].forEach(group => {
