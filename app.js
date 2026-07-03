@@ -48,10 +48,55 @@ function itemToRow(item) {
   };
 }
 
+const HOTEL_DESIGN_KEYS = [
+  { key: 'banner', label: 'X배너' },
+  { key: 'tableTent', label: '테이블텐트' },
+  { key: 'taxNotice', label: '택스리펀 안내문' },
+  { key: 'holder', label: '거치함' },
+  { key: 'signage', label: '안내판' },
+];
+
+function rowToHotel(row) {
+  return {
+    id           : row.id,
+    nameKo       : row.name_ko       || '',
+    nameEn       : row.name_en       || '',
+    url          : row.url           || '',
+    qrImage      : row.qr_image      || '',
+    roomCount    : row.room_count ?? null,
+    refundMethod : row.refund_method || 'kiosk',
+    checklist    : row.checklist     || {},
+    address      : row.address       || '',
+    createdAt    : row.created_at    || new Date().toISOString(),
+    updatedAt    : row.updated_at    || new Date().toISOString(),
+  };
+}
+
+function hotelToRow(hotel) {
+  return {
+    id            : hotel.id,
+    name_ko       : hotel.nameKo       || '',
+    name_en       : hotel.nameEn       || '',
+    url           : hotel.url          || '',
+    qr_image      : hotel.qrImage      || '',
+    room_count    : hotel.roomCount ?? null,
+    refund_method : hotel.refundMethod || 'kiosk',
+    checklist     : hotel.checklist    || {},
+    address       : hotel.address      || '',
+    created_at    : hotel.createdAt,
+    updated_at    : hotel.updatedAt,
+  };
+}
+
 // ── 상태 ──────────────────────────────────────────────────────
 let items          = [];
 let editingId      = null;
 let deletingId     = null;
+let hotelRecords   = [];
+let editingHotelId = null;
+let pendingHotelQrImage = '';
+let hotelStorageMode = 'supabase';
+let hotelsLoaded   = false;
 let selectedIds    = new Set();
 let filterMain     = '';
 let filterSub      = '';
@@ -96,6 +141,32 @@ const selectCopyBtn  = document.getElementById('selectCopyBtn');
 
 const itemMainCatGroup = document.getElementById('itemMainCategory');
 const itemSubCatGroup  = document.getElementById('itemSubCategory');
+
+const hotelQrBody      = document.getElementById('hotelQrBody');
+const hotelEmptyState  = document.getElementById('hotelEmptyState');
+const hotelOverlay     = document.getElementById('hotelOverlay');
+const hotelForm        = document.getElementById('hotelForm');
+const hotelId          = document.getElementById('hotelId');
+const hotelNameKo      = document.getElementById('hotelNameKo');
+const hotelNameEn      = document.getElementById('hotelNameEn');
+const hotelUrl         = document.getElementById('hotelUrl');
+const hotelRoomCount   = document.getElementById('hotelRoomCount');
+const hotelRefundMethod = document.getElementById('hotelRefundMethod');
+const refundKioskBtn   = document.getElementById('refundKioskBtn');
+const refundAirportBtn = document.getElementById('refundAirportBtn');
+const hotelQrUpload    = document.getElementById('hotelQrUpload');
+const hotelQrInput     = document.getElementById('hotelQrInput');
+const hotelQrPreview   = document.getElementById('hotelQrPreview');
+const hotelQrPlaceholder = document.getElementById('hotelQrPlaceholder');
+const hotelQrRemove    = document.getElementById('hotelQrRemove');
+const hotelAddress     = document.getElementById('hotelAddress');
+const hotelChecklistRefs = {
+  banner    : document.getElementById('hotelBanner'),
+  tableTent : document.getElementById('hotelTableTent'),
+  taxNotice : document.getElementById('hotelTaxNotice'),
+  holder    : document.getElementById('hotelHolder'),
+  signage   : document.getElementById('hotelSignage'),
+};
 
 // ── Utils ─────────────────────────────────────────────────────
 function uid() {
@@ -168,6 +239,66 @@ async function removeItem(id) {
     if (match) await db.storage.from('item-images').remove([decodeURIComponent(match[1])]);
   }
   const { error } = await db.from('items').delete().eq('id', id);
+  if (error) throw error;
+}
+
+function loadHotelLocal() {
+  try {
+    return JSON.parse(localStorage.getItem('hotelQrRecords') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveHotelLocal() {
+  localStorage.setItem('hotelQrRecords', JSON.stringify(hotelRecords));
+}
+
+async function fetchHotels() {
+  if (hotelStorageMode === 'local') return loadHotelLocal();
+
+  const { data, error } = await db
+    .from('hotel_qr_records')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('hotel_qr_records 테이블을 사용할 수 없어 로컬 저장 모드로 전환합니다.', error);
+    hotelStorageMode = 'local';
+    return loadHotelLocal();
+  }
+
+  return (data || []).map(rowToHotel);
+}
+
+async function upsertHotel(hotel) {
+  if (hotelStorageMode === 'local') {
+    const idx = hotelRecords.findIndex(h => h.id === hotel.id);
+    if (idx === -1) hotelRecords.unshift(hotel);
+    else hotelRecords[idx] = hotel;
+    saveHotelLocal();
+    return;
+  }
+
+  const { error } = await db.from('hotel_qr_records').upsert(hotelToRow(hotel));
+  if (error) {
+    console.warn('호텔 QR Supabase 저장 실패, 로컬 저장으로 전환합니다.', error);
+    hotelStorageMode = 'local';
+    const idx = hotelRecords.findIndex(h => h.id === hotel.id);
+    if (idx === -1) hotelRecords.unshift(hotel);
+    else hotelRecords[idx] = hotel;
+    saveHotelLocal();
+  }
+}
+
+async function removeHotel(id) {
+  if (hotelStorageMode === 'local') {
+    hotelRecords = hotelRecords.filter(h => h.id !== id);
+    saveHotelLocal();
+    return;
+  }
+
+  const { error } = await db.from('hotel_qr_records').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -330,6 +461,69 @@ function renderList(filtered) {
   });
 }
 
+function getHotelDoneCount(hotel) {
+  const checklist = hotel.checklist || {};
+  return HOTEL_DESIGN_KEYS.filter(item => checklist[item.key]).length;
+}
+
+function renderHotels() {
+  const total = hotelRecords.length;
+  const ready = hotelRecords.filter(hotel => getHotelDoneCount(hotel) === HOTEL_DESIGN_KEYS.length).length;
+
+  document.getElementById('hotelTotalCount').textContent = total;
+  document.getElementById('hotelReadyCount').textContent = ready;
+  document.getElementById('hotelProgressCount').textContent = total - ready;
+
+  hotelQrBody.innerHTML = '';
+  hotelEmptyState.classList.toggle('visible', total === 0);
+  document.querySelector('.hotel-table-wrap').style.display = total === 0 ? 'none' : '';
+
+  hotelRecords.forEach(hotel => {
+    const doneCount = getHotelDoneCount(hotel);
+    const percent = Math.round((doneCount / HOTEL_DESIGN_KEYS.length) * 100);
+    const refundLabel = hotel.refundMethod === 'airport' ? '공항' : '키오스크';
+    const qrHtml = hotel.qrImage
+      ? `<img class="hotel-qr-thumb" src="${hotel.qrImage}" alt="${escapeHtml(hotel.nameKo)} QR">`
+      : '<div class="hotel-qr-empty">QR</div>';
+    const tagsHtml = HOTEL_DESIGN_KEYS.map(item => (
+      `<span class="hotel-design-tag${hotel.checklist?.[item.key] ? ' done' : ''}">${hotel.checklist?.[item.key] ? '✓ ' : ''}${item.label}</span>`
+    )).join('');
+
+    const tr = document.createElement('tr');
+    tr.dataset.id = hotel.id;
+    tr.innerHTML = `
+      <td class="hotel-name">
+        <strong>${escapeHtml(hotel.nameKo) || '-'}</strong>
+        ${hotel.nameEn ? `<span>${escapeHtml(hotel.nameEn)}</span>` : ''}
+      </td>
+      <td>
+        <div class="hotel-url-wrap">
+          ${qrHtml}
+          <div class="hotel-url">${hotel.url ? `<a href="${escapeAttr(hotel.url)}" target="_blank" rel="noopener">${escapeHtml(hotel.url)}</a>` : '-'}</div>
+        </div>
+      </td>
+      <td style="white-space:nowrap">${hotel.roomCount ? formatNumber(hotel.roomCount) + '실' : '-'}</td>
+      <td><span class="refund-badge ${hotel.refundMethod === 'airport' ? 'airport' : 'kiosk'}">${refundLabel}</span></td>
+      <td>
+        <div class="hotel-progress">
+          <div class="hotel-progress-head"><span>${doneCount}/${HOTEL_DESIGN_KEYS.length}</span><span>${percent}%</span></div>
+          <div class="hotel-progress-bar"><div class="hotel-progress-fill" style="width:${percent}%"></div></div>
+          <div class="hotel-design-tags">${tagsHtml}</div>
+        </div>
+      </td>
+      <td class="hotel-address">${escapeHtml(hotel.address) || '-'}</td>
+      <td>
+        <div class="hotel-actions">
+          <button class="btn btn-copy btn-sm" data-haction="copy-url" data-id="${hotel.id}">URL 복사</button>
+          <button class="btn btn-edit btn-sm" data-haction="edit" data-id="${hotel.id}">수정</button>
+          <button class="btn btn-delete btn-sm" data-haction="delete" data-id="${hotel.id}">삭제</button>
+        </div>
+      </td>
+    `;
+    hotelQrBody.appendChild(tr);
+  });
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return str
@@ -338,6 +532,26 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/\n/g, '<br>');
+}
+
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/'/g, '&#39;');
+}
+
+async function copyText(text, successMessage) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  showToast(successMessage);
 }
 
 // ── 다중 선택 ─────────────────────────────────────────────────
@@ -519,6 +733,147 @@ function closeModal() {
   editingId = null;
 }
 
+// ── Hotel QR modal ────────────────────────────────────────────
+function setRefundMethod(method) {
+  hotelRefundMethod.value = method;
+  refundKioskBtn.classList.toggle('active', method === 'kiosk');
+  refundAirportBtn.classList.toggle('active', method === 'airport');
+}
+
+function setHotelQrImage(src) {
+  pendingHotelQrImage = src || '';
+  hotelQrPreview.src = src || '';
+  hotelQrPreview.hidden = !src;
+  hotelQrPlaceholder.style.display = src ? 'none' : '';
+  hotelQrRemove.hidden = !src;
+}
+
+function getHotelChecklistValues() {
+  return Object.fromEntries(
+    HOTEL_DESIGN_KEYS.map(item => [item.key, !!hotelChecklistRefs[item.key].checked])
+  );
+}
+
+function setHotelChecklistValues(values = {}) {
+  HOTEL_DESIGN_KEYS.forEach(item => {
+    hotelChecklistRefs[item.key].checked = !!values[item.key];
+  });
+}
+
+function openHotelModal(id = null) {
+  editingHotelId = id;
+  hotelForm.reset();
+  hotelId.value = id || '';
+  setRefundMethod('kiosk');
+  setHotelQrImage('');
+  setHotelChecklistValues({});
+  document.getElementById('hotelModalTitle').textContent = id ? '호텔 수정' : '호텔 추가';
+
+  if (id) {
+    const hotel = hotelRecords.find(h => h.id === id);
+    if (!hotel) return;
+    hotelNameKo.value = hotel.nameKo || '';
+    hotelNameEn.value = hotel.nameEn || '';
+    hotelUrl.value = hotel.url || '';
+    hotelRoomCount.value = hotel.roomCount ?? '';
+    setRefundMethod(hotel.refundMethod || 'kiosk');
+    setHotelQrImage(hotel.qrImage || '');
+    setHotelChecklistValues(hotel.checklist || {});
+    hotelAddress.value = hotel.address || '';
+  }
+
+  hotelOverlay.classList.add('open');
+  setTimeout(() => hotelNameKo.focus(), 100);
+}
+
+function closeHotelModal() {
+  hotelOverlay.classList.remove('open');
+  editingHotelId = null;
+}
+
+function handleHotelQrFile(file) {
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('⚠️ QR 이미지는 2MB 이하로 올려주세요.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => setHotelQrImage(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+async function saveHotel() {
+  const nameKo = hotelNameKo.value.trim();
+  const url = hotelUrl.value.trim();
+  if (!nameKo) { hotelNameKo.focus(); showToast('⚠️ 호텔명을 입력하세요.'); return; }
+  if (!url)    { hotelUrl.focus();    showToast('⚠️ URL을 입력하세요.'); return; }
+
+  const now = new Date().toISOString();
+  const existing = editingHotelId ? hotelRecords.find(h => h.id === editingHotelId) : null;
+  const hotel = {
+    id           : editingHotelId || uid(),
+    nameKo,
+    nameEn       : hotelNameEn.value.trim(),
+    url,
+    qrImage      : pendingHotelQrImage,
+    roomCount    : hotelRoomCount.value !== '' ? parseFloat(hotelRoomCount.value) : null,
+    refundMethod : hotelRefundMethod.value,
+    checklist    : getHotelChecklistValues(),
+    address      : hotelAddress.value.trim(),
+    createdAt    : existing?.createdAt || now,
+    updatedAt    : now,
+  };
+
+  const btn = document.getElementById('hotelSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  try {
+    await upsertHotel(hotel);
+    if (hotelStorageMode === 'supabase') {
+      if (editingHotelId) {
+        const idx = hotelRecords.findIndex(h => h.id === editingHotelId);
+        if (idx !== -1) hotelRecords[idx] = hotel;
+      } else {
+        hotelRecords.unshift(hotel);
+      }
+    }
+    renderHotels();
+    closeHotelModal();
+    showToast(hotelStorageMode === 'local' ? '✅ 로컬에 저장됐습니다.' : '✅ 호텔 정보가 저장됐습니다.');
+  } catch (e) {
+    showToast('❌ 저장 중 오류가 발생했습니다.');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '저장';
+  }
+}
+
+async function deleteHotel(id) {
+  const hotel = hotelRecords.find(h => h.id === id);
+  if (!hotel) return;
+  if (!confirm(`${hotel.nameKo} 항목을 삭제하시겠습니까?`)) return;
+
+  try {
+    await removeHotel(id);
+    hotelRecords = hotelRecords.filter(h => h.id !== id);
+    saveHotelLocal();
+    renderHotels();
+    showToast('삭제됐습니다.');
+  } catch (e) {
+    showToast('❌ 삭제 중 오류가 발생했습니다.');
+    console.error(e);
+  }
+}
+
+async function copyHotelUrl(id) {
+  const hotel = hotelRecords.find(h => h.id === id);
+  if (!hotel?.url) return;
+  await copyText(hotel.url, '✅ URL을 복사했습니다.');
+}
+
 // ── Delete modal ──────────────────────────────────────────────
 function openDeleteModal(id) {
   deletingId = id;
@@ -688,6 +1043,15 @@ function subscribeRealtime() {
       render();
     })
     .subscribe();
+
+  db.channel('hotel-qr-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hotel_qr_records' }, async () => {
+      if (hotelStorageMode !== 'supabase') return;
+      hotelRecords = await fetchHotels();
+      hotelsLoaded = true;
+      renderHotels();
+    })
+    .subscribe();
 }
 
 // ── Event listeners ───────────────────────────────────────────
@@ -695,6 +1059,21 @@ document.getElementById('addItemBtn').addEventListener('click', () => openModal(
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveBtn').addEventListener('click', saveItem);
+
+document.getElementById('addHotelBtn').addEventListener('click', () => openHotelModal());
+document.getElementById('hotelClose').addEventListener('click', closeHotelModal);
+document.getElementById('hotelCancelBtn').addEventListener('click', closeHotelModal);
+document.getElementById('hotelSaveBtn').addEventListener('click', saveHotel);
+refundKioskBtn.addEventListener('click', () => setRefundMethod('kiosk'));
+refundAirportBtn.addEventListener('click', () => setRefundMethod('airport'));
+hotelQrUpload.addEventListener('click', () => hotelQrInput.click());
+hotelQrInput.addEventListener('change', () => handleHotelQrFile(hotelQrInput.files[0]));
+hotelQrRemove.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hotelQrInput.value = '';
+  setHotelQrImage('');
+});
+hotelOverlay.addEventListener('click', (e) => { if (e.target === hotelOverlay) closeHotelModal(); });
 
 document.getElementById('deleteClose').addEventListener('click', closeDeleteModal);
 document.getElementById('deleteCancelBtn').addEventListener('click', closeDeleteModal);
@@ -748,6 +1127,15 @@ document.getElementById('itemsListWrap').addEventListener('click', (e) => {
 
   const tr = e.target.closest('tr[data-id]');
   if (tr) toggleSelect(tr.dataset.id);
+});
+
+hotelQrBody.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-haction]');
+  if (!btn) return;
+  const { haction, id } = btn.dataset;
+  if (haction === 'copy-url') copyHotelUrl(id);
+  if (haction === 'edit') openHotelModal(id);
+  if (haction === 'delete') deleteHotel(id);
 });
 
 // ── 뷰 토글 ──────────────────────────────────────────────────
@@ -1393,17 +1781,30 @@ document.querySelector('.tab-bar').addEventListener('click', async (e) => {
   const btn = e.target.closest('.tab-btn');
   if (!btn) return;
   const tab = btn.dataset.tab;
+  const tabPaneMap = {
+    design   : 'tabDesign',
+    inventory: 'tabInventory',
+    hotelQr  : 'tabHotelQr',
+  };
 
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
   btn.classList.add('active');
-  document.getElementById(tab === 'design' ? 'tabDesign' : 'tabInventory').classList.add('active');
+  document.getElementById(tabPaneMap[tab]).classList.add('active');
   document.getElementById('addItemBtn').style.display = tab === 'design' ? '' : 'none';
 
   if (tab === 'inventory') {
     await fetchInventory();
     renderInventory();
+  }
+
+  if (tab === 'hotelQr') {
+    if (!hotelsLoaded) {
+      hotelRecords = await fetchHotels();
+      hotelsLoaded = true;
+    }
+    renderHotels();
   }
 });
 

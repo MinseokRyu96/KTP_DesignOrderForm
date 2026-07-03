@@ -12,6 +12,7 @@
 |----|------|
 | 디자인물 | 발주 항목 관리, 지출결의서 복사, 발주내역 |
 | 재고현황 | **재고관리 ON** 항목만 표시, 배부 현황 / 히스토리 관리 |
+| 호텔 QR | 신규 제휴 호텔 URL / QR / 디자인물 준비 상태 관리 |
 
 ---
 
@@ -61,6 +62,12 @@
 ### 팀 실시간 공유
 - **Supabase** DB 연동으로 팀원 전원이 동일한 데이터 공유
 - 누군가 항목을 추가/수정/삭제하면 **새로고침 없이 실시간 반영**
+
+### 호텔 QR 관리
+- 호텔명(한글/영문), URL, QR 이미지, 객실수, 환급방법, 호텔주소 입력
+- X배너 / 테이블텐트 / 택스리펀 안내문 / 거치함 / 안내판 준비 여부 체크
+- 준비율과 완료 호텔 수를 요약으로 확인
+- `hotel_qr_records` 테이블이 없으면 임시로 브라우저 로컬 저장소에 저장
 
 ---
 
@@ -156,6 +163,20 @@ create table public.order_history (
   unit_price   numeric,
   purpose      text default '',
   created_at   timestamptz default now()
+);
+
+create table public.hotel_qr_records (
+  id            text primary key,
+  name_ko       text not null,
+  name_en       text default '',
+  url           text not null,
+  qr_image      text default '',
+  room_count    numeric,
+  refund_method text default 'kiosk',
+  checklist     jsonb default '{}'::jsonb,
+  address       text default '',
+  created_at    timestamptz default now(),
+  updated_at    timestamptz default now()
 );
 ```
 

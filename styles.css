@@ -1240,6 +1240,10 @@ select:focus {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.form-row.two-col {
+  grid-template-columns: 1fr 1fr;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -1527,6 +1531,328 @@ textarea {
   font-weight: 700;
 }
 
+/* ── 호텔 QR 관리 ── */
+.hotel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.hotel-toolbar h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 2px;
+}
+
+.hotel-toolbar p {
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.hotel-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.summary-item {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-400);
+  margin-bottom: 4px;
+}
+
+.summary-item strong {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--gray-900);
+}
+
+.hotel-table-wrap {
+  overflow-x: auto;
+}
+
+.hotel-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+
+.hotel-table thead th {
+  background: var(--gray-50);
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--gray-200);
+  white-space: nowrap;
+}
+
+.hotel-table tbody tr {
+  border-bottom: 1px solid var(--gray-100);
+  transition: background 0.1s;
+}
+
+.hotel-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.hotel-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.hotel-table td {
+  padding: 12px 14px;
+  color: var(--gray-700);
+  vertical-align: middle;
+}
+
+.hotel-name {
+  min-width: 190px;
+}
+
+.hotel-name strong {
+  display: block;
+  color: var(--gray-900);
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.hotel-name span,
+.hotel-address,
+.hotel-url {
+  color: var(--gray-500);
+  font-size: 12px;
+}
+
+.hotel-url-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.hotel-url {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotel-url a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.hotel-url a:hover {
+  text-decoration: underline;
+}
+
+.hotel-qr-thumb,
+.hotel-qr-empty {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.hotel-qr-thumb {
+  object-fit: cover;
+  background: var(--white);
+}
+
+.hotel-qr-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
+  color: var(--gray-300);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.refund-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.refund-badge.kiosk {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.refund-badge.airport {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.hotel-progress {
+  min-width: 180px;
+}
+
+.hotel-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-600);
+}
+
+.hotel-progress-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--gray-100);
+  margin-bottom: 8px;
+}
+
+.hotel-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.hotel-design-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hotel-design-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  color: var(--gray-400);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hotel-design-tag.done {
+  border-color: #bbf7d0;
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.hotel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.modal-hotel {
+  max-width: 760px;
+}
+
+.hotel-refund-toggle .delivery-btn {
+  min-height: 40px;
+}
+
+.hotel-check-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hotel-check {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.hotel-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+.hotel-check span {
+  font-size: 13px;
+  color: var(--gray-700);
+  white-space: nowrap;
+}
+
+.hotel-qr-upload {
+  min-height: 120px;
+  position: relative;
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.hotel-qr-placeholder {
+  color: var(--gray-400);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hotel-qr-upload img {
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  display: block;
+  padding: 10px;
+}
+
+.hotel-qr-remove {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(17,24,39,0.82);
+  color: var(--white);
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 /* ── 디자인물 리스트 뷰 ── */
 .items-list-wrap {
   overflow-x: auto;
@@ -1755,6 +2081,20 @@ textarea {
   }
 
   .form-row.three-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-row.two-col,
+  .hotel-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .hotel-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hotel-check-grid {
     grid-template-columns: 1fr 1fr;
   }
 

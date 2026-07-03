@@ -21,6 +21,7 @@
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="design">디자인물</button>
       <button class="tab-btn" data-tab="inventory">재고현황</button>
+      <button class="tab-btn" data-tab="hotelQr">호텔 QR</button>
     </div>
 
     <!-- 디자인물 탭 -->
@@ -125,6 +126,57 @@
             </thead>
             <tbody id="inventoryBody"></tbody>
           </table>
+        </div>
+      </main>
+    </div>
+
+    <!-- 호텔 QR 탭 -->
+    <div id="tabHotelQr" class="tab-pane">
+      <main class="main-content">
+        <div class="hotel-toolbar">
+          <div>
+            <h2>호텔 QR 관리</h2>
+            <p>신규 제휴 호텔의 QR URL과 디자인물 준비 상태를 관리합니다.</p>
+          </div>
+          <button class="btn btn-primary" id="addHotelBtn">+ 호텔 추가</button>
+        </div>
+
+        <div class="hotel-summary" id="hotelSummary">
+          <div class="summary-item">
+            <span class="summary-label">전체 호텔</span>
+            <strong id="hotelTotalCount">0</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">준비 완료</span>
+            <strong id="hotelReadyCount">0</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">진행 중</span>
+            <strong id="hotelProgressCount">0</strong>
+          </div>
+        </div>
+
+        <div class="hotel-table-wrap">
+          <table class="hotel-table">
+            <thead>
+              <tr>
+                <th>호텔명</th>
+                <th>URL / QR</th>
+                <th>객실수</th>
+                <th>환급방법</th>
+                <th>디자인물 준비</th>
+                <th>주소</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="hotelQrBody"></tbody>
+          </table>
+        </div>
+
+        <div class="empty-state" id="hotelEmptyState">
+          <div class="empty-icon">🏨</div>
+          <p>등록된 호텔이 없습니다.</p>
+          <p class="empty-sub">우측 상단 "+ 호텔 추가" 버튼으로 QR 관리 항목을 만들어보세요.</p>
         </div>
       </main>
     </div>
@@ -417,6 +469,87 @@
       <div class="modal-footer">
         <button class="btn btn-ghost" id="distAddBtn">+ 배부 추가</button>
         <button class="btn btn-ghost" id="distDoneBtn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 호텔 QR 추가/수정 모달 -->
+  <div class="modal-overlay" id="hotelOverlay">
+    <div class="modal modal-hotel">
+      <div class="modal-header">
+        <h2 id="hotelModalTitle">호텔 추가</h2>
+        <button class="modal-close" id="hotelClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="hotelForm">
+          <input type="hidden" id="hotelId">
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>호텔명 (한글) <span class="required">*</span></label>
+              <input type="text" id="hotelNameKo" placeholder="예: 호텔 코리아" required>
+            </div>
+            <div class="form-group">
+              <label>호텔명 (영문)</label>
+              <input type="text" id="hotelNameEn" placeholder="예: Hotel Korea">
+            </div>
+          </div>
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>URL <span class="required">*</span></label>
+              <input type="url" id="hotelUrl" placeholder="https://..." required>
+            </div>
+            <div class="form-group">
+              <label>객실수</label>
+              <input type="number" id="hotelRoomCount" placeholder="0" min="0">
+            </div>
+          </div>
+
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>환급방법</label>
+              <div class="delivery-toggle hotel-refund-toggle">
+                <button type="button" class="delivery-btn active" id="refundKioskBtn" data-refund="kiosk">키오스크</button>
+                <button type="button" class="delivery-btn" id="refundAirportBtn" data-refund="airport">공항</button>
+              </div>
+              <input type="hidden" id="hotelRefundMethod" value="kiosk">
+            </div>
+            <div class="form-group">
+              <label>QR 이미지</label>
+              <div class="hotel-qr-upload" id="hotelQrUpload">
+                <input type="file" id="hotelQrInput" accept="image/*" hidden>
+                <div class="hotel-qr-placeholder" id="hotelQrPlaceholder">QR 이미지 추가</div>
+                <img id="hotelQrPreview" src="" alt="QR 미리보기" hidden>
+                <button type="button" class="hotel-qr-remove" id="hotelQrRemove" hidden>제거</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label>디자인물 준비 체크</label>
+              <div class="hotel-check-grid">
+                <label class="hotel-check"><input type="checkbox" id="hotelBanner"> <span>X배너</span></label>
+                <label class="hotel-check"><input type="checkbox" id="hotelTableTent"> <span>테이블텐트</span></label>
+                <label class="hotel-check"><input type="checkbox" id="hotelTaxNotice"> <span>택스리펀 안내문</span></label>
+                <label class="hotel-check"><input type="checkbox" id="hotelHolder"> <span>거치함</span></label>
+                <label class="hotel-check"><input type="checkbox" id="hotelSignage"> <span>안내판</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full">
+              <label>호텔주소</label>
+              <textarea id="hotelAddress" placeholder="호텔 주소를 입력하세요." rows="3"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="hotelCancelBtn">취소</button>
+        <button class="btn btn-primary" id="hotelSaveBtn">저장</button>
       </div>
     </div>
   </div>
