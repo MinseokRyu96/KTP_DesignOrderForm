@@ -97,6 +97,7 @@ let editingHotelId = null;
 let pendingHotelQrImage = '';
 let hotelStorageMode = 'supabase';
 let hotelsLoaded   = false;
+let hotelUrlTouched = false;
 let selectedIds    = new Set();
 let filterMain     = '';
 let filterSub      = '';
@@ -760,8 +761,25 @@ function setHotelChecklistValues(values = {}) {
   });
 }
 
+function buildHotelUrlFromEnglishName(name) {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug ? `https://hotel.refundit.kr/${slug}` : '';
+}
+
+function syncHotelUrlFromName() {
+  if (hotelUrlTouched) return;
+  hotelUrl.value = buildHotelUrlFromEnglishName(hotelNameEn.value);
+}
+
 function openHotelModal(id = null) {
   editingHotelId = id;
+  hotelUrlTouched = false;
   hotelForm.reset();
   hotelId.value = id || '';
   setRefundMethod('kiosk');
@@ -775,6 +793,7 @@ function openHotelModal(id = null) {
     hotelNameKo.value = hotel.nameKo || '';
     hotelNameEn.value = hotel.nameEn || '';
     hotelUrl.value = hotel.url || '';
+    hotelUrlTouched = true;
     hotelRoomCount.value = hotel.roomCount ?? '';
     setRefundMethod(hotel.refundMethod || 'kiosk');
     setHotelQrImage(hotel.qrImage || '');
@@ -805,9 +824,10 @@ function handleHotelQrFile(file) {
 
 async function saveHotel() {
   const nameKo = hotelNameKo.value.trim();
-  const url = hotelUrl.value.trim();
+  const autoUrl = buildHotelUrlFromEnglishName(hotelNameEn.value);
+  const url = hotelUrl.value.trim() || autoUrl;
   if (!nameKo) { hotelNameKo.focus(); showToast('⚠️ 호텔명을 입력하세요.'); return; }
-  if (!url)    { hotelUrl.focus();    showToast('⚠️ URL을 입력하세요.'); return; }
+  if (!url)    { hotelNameEn.focus(); showToast('⚠️ 호텔 영문명을 입력하거나 URL을 입력하세요.'); return; }
 
   const now = new Date().toISOString();
   const existing = editingHotelId ? hotelRecords.find(h => h.id === editingHotelId) : null;
@@ -1064,6 +1084,10 @@ document.getElementById('addHotelBtn').addEventListener('click', () => openHotel
 document.getElementById('hotelClose').addEventListener('click', closeHotelModal);
 document.getElementById('hotelCancelBtn').addEventListener('click', closeHotelModal);
 document.getElementById('hotelSaveBtn').addEventListener('click', saveHotel);
+hotelNameEn.addEventListener('input', syncHotelUrlFromName);
+hotelUrl.addEventListener('input', () => {
+  hotelUrlTouched = hotelUrl.value.trim() !== '';
+});
 refundKioskBtn.addEventListener('click', () => setRefundMethod('kiosk'));
 refundAirportBtn.addEventListener('click', () => setRefundMethod('airport'));
 hotelQrUpload.addEventListener('click', () => hotelQrInput.click());
