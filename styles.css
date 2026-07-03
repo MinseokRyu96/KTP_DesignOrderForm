@@ -136,9 +136,9 @@ body {
   gap: 8px;
   height: 38px;
   padding: 0 10px 0 12px;
-  border: 1px solid var(--gray-200);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--gray-50);
+  background: var(--gray-100);
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
