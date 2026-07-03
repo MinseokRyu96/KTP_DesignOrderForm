@@ -170,29 +170,21 @@ body {
 .search-field {
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
   cursor: text;
-}
-
-.search-label {
-  font-size: 11px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: var(--gray-500);
 }
 
 .search-field .search-input {
   flex: 1;
   min-width: 0;
-  height: 20px;
+  height: 28px;
   border: none;
   outline: none;
   background: transparent;
   box-shadow: none;
   -webkit-appearance: none;
   appearance: none;
-  font-size: 14px;
+  font-size: 15px;
   font-family: inherit;
   color: var(--gray-800);
   padding: 0;
