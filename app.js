@@ -477,12 +477,11 @@ function buildHotelDisplayRow(hotel) {
   const qrHtml = hotel.qrImage
     ? `<img class="hotel-qr-thumb" src="${hotel.qrImage}" alt="${escapeHtml(hotel.nameKo)} QR">`
     : '<div class="hotel-qr-empty">QR</div>';
-  const tagsHtml = HOTEL_DESIGN_KEYS.map(item => {
-    const done = !!hotel.checklist?.[item.key];
-    const count = item.hasCount ? hotel.checklist?.[`${item.key}Count`] : null;
-    const countLabel = count ? ` ${formatNumber(count)}개` : '';
-    return `<span class="hotel-design-tag${done ? ' done' : ''}">${done ? '✓ ' : ''}${item.label}${countLabel}</span>`;
-  }).join('');
+  const tagsHtml = HOTEL_DESIGN_KEYS.map(item => (
+    `<span class="hotel-design-tag${hotel.checklist?.[item.key] ? ' done' : ''}">${hotel.checklist?.[item.key] ? '✓ ' : ''}${item.label}</span>`
+  )).join('');
+  const tableTentCount = hotel.checklist?.tableTentCount;
+  const taxNoticeCount = hotel.checklist?.taxNoticeCount;
 
   const tr = document.createElement('tr');
   tr.dataset.id = hotel.id;
@@ -498,6 +497,8 @@ function buildHotelDisplayRow(hotel) {
       </div>
     </td>
     <td style="white-space:nowrap">${hotel.roomCount ? formatNumber(hotel.roomCount) + '실' : '-'}</td>
+    <td style="white-space:nowrap">${tableTentCount ? formatNumber(tableTentCount) + '개' : '-'}</td>
+    <td style="white-space:nowrap">${taxNoticeCount ? formatNumber(taxNoticeCount) + '개' : '-'}</td>
     <td><span class="refund-badge ${hotel.refundMethod === 'airport' ? 'airport' : 'kiosk'}">${refundLabel}${hotel.refundMethod === 'kiosk' ? ` · ${kioskSizeLabel}` : ''}</span></td>
     <td>
       <div class="hotel-progress">
@@ -524,13 +525,10 @@ function buildHotelEditRow(state) {
     : `<span>QR 추가</span>`;
 
   const checksHtml = HOTEL_DESIGN_KEYS.map(item => `
-    <div class="hotel-check-sm">
-      <label>
-        <input type="checkbox" data-check="${item.key}" ${state.checklist?.[item.key] ? 'checked' : ''}>
-        <span>${item.label}</span>
-      </label>
-      ${item.hasCount ? `<input type="number" class="hotel-check-count" data-check-count="${item.key}" min="0" placeholder="개수" value="${state.checklist?.[`${item.key}Count`] ?? ''}">` : ''}
-    </div>
+    <label class="hotel-check-sm">
+      <input type="checkbox" data-check="${item.key}" ${state.checklist?.[item.key] ? 'checked' : ''}>
+      <span>${item.label}</span>
+    </label>
   `).join('');
 
   const tr = document.createElement('tr');
@@ -550,6 +548,12 @@ function buildHotelEditRow(state) {
     </td>
     <td>
       <input type="number" class="hotel-edit-input" data-field="roomCount" placeholder="0" min="0" value="${state.roomCount ?? ''}">
+    </td>
+    <td>
+      <input type="number" class="hotel-edit-input" data-check-count="tableTent" placeholder="0" min="0" value="${state.checklist?.tableTentCount ?? ''}">
+    </td>
+    <td>
+      <input type="number" class="hotel-edit-input" data-check-count="taxNotice" placeholder="0" min="0" value="${state.checklist?.taxNoticeCount ?? ''}">
     </td>
     <td>
       <div class="hotel-inline-toggle" data-toggle="refund">
