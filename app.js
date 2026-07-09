@@ -50,8 +50,8 @@ function itemToRow(item) {
 
 const HOTEL_DESIGN_KEYS = [
   { key: 'banner', label: 'X배너' },
-  { key: 'tableTent', label: '테이블텐트' },
-  { key: 'taxNotice', label: '택스리펀 안내문' },
+  { key: 'tableTent', label: '테이블텐트', hasCount: true },
+  { key: 'taxNotice', label: '택스리펀 안내문', hasCount: true },
   { key: 'holder', label: '거치함' },
   { key: 'signage', label: '안내판' },
 ];
@@ -477,9 +477,12 @@ function buildHotelDisplayRow(hotel) {
   const qrHtml = hotel.qrImage
     ? `<img class="hotel-qr-thumb" src="${hotel.qrImage}" alt="${escapeHtml(hotel.nameKo)} QR">`
     : '<div class="hotel-qr-empty">QR</div>';
-  const tagsHtml = HOTEL_DESIGN_KEYS.map(item => (
-    `<span class="hotel-design-tag${hotel.checklist?.[item.key] ? ' done' : ''}">${hotel.checklist?.[item.key] ? '✓ ' : ''}${item.label}</span>`
-  )).join('');
+  const tagsHtml = HOTEL_DESIGN_KEYS.map(item => {
+    const done = !!hotel.checklist?.[item.key];
+    const count = item.hasCount ? hotel.checklist?.[`${item.key}Count`] : null;
+    const countLabel = count ? ` ${formatNumber(count)}개` : '';
+    return `<span class="hotel-design-tag${done ? ' done' : ''}">${done ? '✓ ' : ''}${item.label}${countLabel}</span>`;
+  }).join('');
 
   const tr = document.createElement('tr');
   tr.dataset.id = hotel.id;
@@ -521,10 +524,13 @@ function buildHotelEditRow(state) {
     : `<span>QR 추가</span>`;
 
   const checksHtml = HOTEL_DESIGN_KEYS.map(item => `
-    <label class="hotel-check-sm">
-      <input type="checkbox" data-check="${item.key}" ${state.checklist?.[item.key] ? 'checked' : ''}>
-      <span>${item.label}</span>
-    </label>
+    <div class="hotel-check-sm">
+      <label>
+        <input type="checkbox" data-check="${item.key}" ${state.checklist?.[item.key] ? 'checked' : ''}>
+        <span>${item.label}</span>
+      </label>
+      ${item.hasCount ? `<input type="number" class="hotel-check-count" data-check-count="${item.key}" min="0" placeholder="개수" value="${state.checklist?.[`${item.key}Count`] ?? ''}">` : ''}
+    </div>
   `).join('');
 
   const tr = document.createElement('tr');
@@ -673,6 +679,14 @@ async function saveHotelRowEdit() {
     return;
   }
 
+  const checklist = { ...(state.checklist || {}) };
+  HOTEL_DESIGN_KEYS.forEach(item => {
+    if (!item.hasCount) return;
+    const countKey = `${item.key}Count`;
+    const raw = checklist[countKey];
+    checklist[countKey] = raw !== undefined && raw !== null && raw !== '' ? parseFloat(raw) : null;
+  });
+
   const now = new Date().toISOString();
   const existing = state.mode === 'edit' ? hotelRecords.find(h => h.id === state.id) : null;
   const hotel = {
@@ -684,7 +698,7 @@ async function saveHotelRowEdit() {
     roomCount    : state.roomCount !== null && state.roomCount !== '' ? parseFloat(state.roomCount) : null,
     refundMethod : state.refundMethod,
     kioskSize    : state.refundMethod === 'kiosk' ? state.kioskSize : '',
-    checklist    : { ...(state.checklist || {}) },
+    checklist,
     address      : (state.address || '').trim(),
     createdAt    : existing?.createdAt || now,
     updatedAt    : now,
@@ -1243,8 +1257,16 @@ hotelQrBody.addEventListener('click', (e) => {
 });
 
 hotelQrBody.addEventListener('input', (e) => {
+  if (!hotelRowEdit) return;
+
+  const countKey = e.target.dataset.checkCount;
+  if (countKey) {
+    hotelRowEdit.checklist[`${countKey}Count`] = e.target.value;
+    return;
+  }
+
   const field = e.target.dataset.field;
-  if (!field || !hotelRowEdit) return;
+  if (!field) return;
   hotelRowEdit[field] = e.target.value;
   if (field === 'nameEn' && !hotelRowEdit.urlTouched) {
     const autoUrl = buildHotelUrlFromEnglishName(e.target.value);

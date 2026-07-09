@@ -1902,19 +1902,26 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 130px;
+  min-width: 170px;
 }
 
 .hotel-check-sm {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.hotel-check-sm label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
 }
 
-.hotel-check-sm input {
+.hotel-check-sm input[type="checkbox"] {
   width: 14px;
   height: 14px;
+  flex-shrink: 0;
   accent-color: var(--primary);
 }
 
@@ -1922,6 +1929,22 @@ textarea {
   font-size: 12px;
   color: var(--gray-700);
   white-space: nowrap;
+}
+
+.hotel-check-count {
+  width: 56px;
+  padding: 3px 6px;
+  border: 1px solid var(--gray-200);
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--gray-900);
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.hotel-check-count:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
 /* ── 디자인물 리스트 뷰 ── */
