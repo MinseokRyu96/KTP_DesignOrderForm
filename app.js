@@ -56,6 +56,26 @@ const HOTEL_DESIGN_KEYS = [
   { key: 'signage', label: '안내판' },
 ];
 
+// 디자인물 다운로드 링크 구조. key가 있는 노드가 실제 URL을 갖는 leaf, children이 있으면 묶음 라벨.
+const DESIGN_LINK_TREE = [
+  { key: 'xbanner', label: 'X배너' },
+  { key: 'tableTent', label: '테이블텐트' },
+  {
+    label: '택스리펀 안내문',
+    wide: true,
+    children: [
+      {
+        label: '무인환급',
+        children: [
+          { key: 'taxNoticeUnmannedAirport', label: '공항환급방식' },
+          { key: 'taxNoticeUnmannedKiosk', label: '키오스크환급방식' },
+        ],
+      },
+      { key: 'taxNoticeCounter', label: '카운터환급' },
+    ],
+  },
+];
+
 function rowToHotel(row) {
   return {
     id           : row.id,
@@ -97,6 +117,9 @@ let hotelRecords   = [];
 let hotelStorageMode = 'supabase';
 let hotelsLoaded   = false;
 let hotelRowEdit   = null; // 인라인 편집/신규 행 상태: { mode: 'new'|'edit', id, nameKo, nameEn, url, urlTouched, qrImage, roomCount, refundMethod, kioskSize, checklist, address }
+let downloadLinks   = {}; // { [key]: url }
+let downloadLinksStorageMode = 'supabase';
+let downloadLinksLoaded = false;
 let selectedIds    = new Set();
 let filterMain     = '';
 let filterSub      = '';
@@ -279,6 +302,46 @@ async function removeHotel(id) {
   if (error) throw error;
 }
 
+function loadDownloadLinksLocal() {
+  try {
+    return JSON.parse(localStorage.getItem('designDownloadLinks') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveDownloadLinksLocal() {
+  localStorage.setItem('designDownloadLinks', JSON.stringify(downloadLinks));
+}
+
+async function fetchDownloadLinks() {
+  if (downloadLinksStorageMode === 'local') return loadDownloadLinksLocal();
+
+  const { data, error } = await db.from('design_download_links').select('*');
+  if (error) {
+    console.warn('design_download_links 테이블을 사용할 수 없어 로컬 저장 모드로 전환합니다.', error);
+    downloadLinksStorageMode = 'local';
+    return loadDownloadLinksLocal();
+  }
+
+  return Object.fromEntries((data || []).map(row => [row.key, row.url || '']));
+}
+
+async function upsertDownloadLink(key, url) {
+  downloadLinks[key] = url;
+  if (downloadLinksStorageMode === 'local') {
+    saveDownloadLinksLocal();
+    return;
+  }
+
+  const { error } = await db.from('design_download_links').upsert({ key, url, updated_at: new Date().toISOString() });
+  if (error) {
+    console.warn('다운로드 링크 Supabase 저장 실패, 로컬 저장으로 전환합니다.', error);
+    downloadLinksStorageMode = 'local';
+    saveDownloadLinksLocal();
+  }
+}
+
 // ── Render ────────────────────────────────────────────────────
 function getFilteredItems() {
   const q = searchQuery.trim().toLowerCase();
@@ -443,6 +506,47 @@ function getHotelDoneCount(hotel) {
   return HOTEL_DESIGN_KEYS.filter(item => checklist[item.key]).length;
 }
 
+function renderDownloadLinks() {
+  const body = document.getElementById('downloadLinksBody');
+  body.innerHTML = DESIGN_LINK_TREE.map(node => renderDlCard(node)).join('');
+}
+
+function renderDlCard(node) {
+  const inner = node.children
+    ? node.children.map(child => renderDlNode(child)).join('')
+    : renderDlLinkRow(node, true);
+  return `
+    <div class="dl-card${node.wide ? ' wide' : ''}">
+      <div class="dl-card-title">${node.label}</div>
+      ${inner}
+    </div>
+  `;
+}
+
+function renderDlNode(node) {
+  if (node.children) {
+    return `
+      <div class="dl-group">
+        <div class="dl-group-label">${node.label}</div>
+        ${node.children.map(child => renderDlLinkRow(child)).join('')}
+      </div>
+    `;
+  }
+  return renderDlLinkRow(node);
+}
+
+function renderDlLinkRow(node, hideLabel = false) {
+  const url = downloadLinks[node.key] || '';
+  const openUrl = normalizeUrl(url);
+  return `
+    <div class="dl-link-row">
+      ${hideLabel ? '' : `<span class="dl-link-label">${node.label}</span>`}
+      <input type="url" class="dl-link-input" data-link-key="${node.key}" placeholder="다운로드 URL" value="${escapeAttr(url)}">
+      <a class="dl-link-open ${openUrl ? 'enabled' : 'disabled'}" href="${openUrl ? escapeAttr(openUrl) : '#'}" target="_blank" rel="noopener" title="다운로드">↗</a>
+    </div>
+  `;
+}
+
 function renderHotels() {
   const total = hotelRecords.length;
   const ready = hotelRecords.filter(hotel => getHotelDoneCount(hotel) === HOTEL_DESIGN_KEYS.length).length;
@@ -494,7 +598,7 @@ function buildHotelDisplayRow(hotel) {
     <td>
       <div class="hotel-url-wrap">
         ${qrHtml}
-        <div class="hotel-url">${hotel.url ? `<a href="${escapeAttr(normalizeHotelUrl(hotel.url))}" target="_blank" rel="noopener">${escapeHtml(hotel.url)}</a>` : '-'}</div>
+        <div class="hotel-url">${hotel.url ? `<a href="${escapeAttr(normalizeUrl(hotel.url))}" target="_blank" rel="noopener">${escapeHtml(hotel.url)}</a>` : '-'}</div>
       </div>
     </td>
     <td style="white-space:nowrap">${hotel.roomCount ? formatNumber(hotel.roomCount) + '실' : '-'}</td>
@@ -675,7 +779,7 @@ async function saveHotelRowEdit() {
   const tr = hotelQrBody.querySelector('.hotel-row-edit');
   const nameKo = (state.nameKo || '').trim();
   const autoUrl = buildHotelUrlFromEnglishName(state.nameEn || '');
-  const url = normalizeHotelUrl((state.url || '').trim() || autoUrl);
+  const url = normalizeUrl((state.url || '').trim() || autoUrl);
 
   if (!nameKo) {
     showToast('⚠️ 호텔명을 입력하세요.');
@@ -959,14 +1063,14 @@ function buildHotelUrlFromEnglishName(name) {
   return slug ? `https://hotel.refundit.kr/${slug}` : '';
 }
 
-function normalizeHotelUrl(url) {
+function normalizeUrl(url) {
   const trimmed = (url || '').trim();
   if (!trimmed) return '';
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
 function buildQrImageUrl(url) {
-  const trimmed = normalizeHotelUrl(url);
+  const trimmed = normalizeUrl(url);
   if (!trimmed) return '';
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(trimmed)}`;
 }
@@ -1001,7 +1105,7 @@ async function deleteHotel(id) {
 async function copyHotelUrl(id) {
   const hotel = hotelRecords.find(h => h.id === id);
   if (!hotel?.url) return;
-  await copyText(normalizeHotelUrl(hotel.url), '✅ URL을 복사했습니다.');
+  await copyText(normalizeUrl(hotel.url), '✅ URL을 복사했습니다.');
 }
 
 async function toggleHotelChecklistItem(id, key) {
@@ -1204,6 +1308,15 @@ function subscribeRealtime() {
       renderHotels();
     })
     .subscribe();
+
+  db.channel('design-download-links-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'design_download_links' }, async () => {
+      if (downloadLinksStorageMode !== 'supabase') return;
+      downloadLinks = await fetchDownloadLinks();
+      downloadLinksLoaded = true;
+      renderDownloadLinks();
+    })
+    .subscribe();
 }
 
 // ── Event listeners ───────────────────────────────────────────
@@ -1213,6 +1326,31 @@ document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveBtn').addEventListener('click', saveItem);
 
 document.getElementById('addHotelBtn').addEventListener('click', () => startAddHotelRow());
+
+const downloadLinksBody = document.getElementById('downloadLinksBody');
+
+downloadLinksBody.addEventListener('focusout', async (e) => {
+  if (!e.target.matches('.dl-link-input')) return;
+  const key = e.target.dataset.linkKey;
+  const url = e.target.value.trim();
+  if ((downloadLinks[key] || '') === url) return;
+
+  await upsertDownloadLink(key, url);
+  const normalized = normalizeUrl(url);
+  const openBtn = e.target.closest('.dl-link-row')?.querySelector('.dl-link-open');
+  if (openBtn) {
+    openBtn.href = normalized || '#';
+    openBtn.classList.toggle('enabled', !!normalized);
+    openBtn.classList.toggle('disabled', !normalized);
+  }
+});
+
+downloadLinksBody.addEventListener('keydown', (e) => {
+  if (e.target.matches('.dl-link-input') && e.key === 'Enter') {
+    e.preventDefault();
+    e.target.blur();
+  }
+});
 
 document.getElementById('deleteClose').addEventListener('click', closeDeleteModal);
 document.getElementById('deleteCancelBtn').addEventListener('click', closeDeleteModal);
@@ -2071,6 +2209,12 @@ document.querySelector('.tab-bar').addEventListener('click', async (e) => {
       hotelsLoaded = true;
     }
     renderHotels();
+
+    if (!downloadLinksLoaded) {
+      downloadLinks = await fetchDownloadLinks();
+      downloadLinksLoaded = true;
+    }
+    renderDownloadLinks();
   }
 });
 

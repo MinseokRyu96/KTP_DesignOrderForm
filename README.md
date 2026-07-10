@@ -64,6 +64,7 @@
 - 누군가 항목을 추가/수정/삭제하면 **새로고침 없이 실시간 반영**
 
 ### 호텔 QR 관리
+- **디자인물 다운로드 링크**: 탭 상단에서 X배너 / 테이블텐트 / 택스리펀 안내문(무인환급-공항·키오스크 / 카운터환급) 최신 파일의 다운로드 URL을 관리. URL 입력 칸에 붙여넣으면 자동 저장되고, ↗ 버튼으로 바로 이동
 - **노션 스타일 인라인 편집**: "+ 호텔 추가" 클릭 시 모달 없이 테이블 맨 아래에 입력 가능한 행이 바로 추가됨
 - 행 안에서 호텔명(한글/영문), URL, QR 이미지, 객실수, 테이블텐트 개수, 안내문 개수, 환급방법, 키오스크 유형, 디자인물 체크리스트, 호텔주소를 바로 입력
 - 저장 시 이어서 새 빈 행이 자동으로 추가되어 여러 호텔을 연속으로 빠르게 입력 가능 (Enter로 저장, Esc로 취소)
@@ -187,6 +188,12 @@ create table public.hotel_qr_records (
   address       text default '',
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
+);
+
+create table public.design_download_links (
+  key        text primary key,  -- 예: xbanner, tableTent, taxNoticeUnmannedAirport, taxNoticeUnmannedKiosk, taxNoticeCounter
+  url        text default '',
+  updated_at timestamptz default now()
 );
 ```
 

@@ -1558,6 +1558,134 @@ textarea {
   font-size: 13px;
 }
 
+/* ── 디자인물 다운로드 링크 ── */
+.dl-panel {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.dl-panel-head h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 2px;
+}
+
+.dl-panel-head p {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-bottom: 12px;
+}
+
+.dl-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.dl-card {
+  flex: 1 1 220px;
+  min-width: 220px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+  padding: 12px 14px;
+}
+
+.dl-card.wide {
+  flex: 2 1 360px;
+}
+
+.dl-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+
+.dl-group {
+  margin-bottom: 10px;
+}
+
+.dl-group:last-child {
+  margin-bottom: 0;
+}
+
+.dl-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+.dl-link-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.dl-link-row:last-child {
+  margin-bottom: 0;
+}
+
+.dl-link-label {
+  flex: 0 0 auto;
+  min-width: 96px;
+  font-size: 12px;
+  color: var(--gray-600);
+  font-weight: 600;
+}
+
+.dl-link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--gray-900);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.dl-link-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.dl-link-open {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-300);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.dl-link-open.enabled {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.dl-link-open.disabled {
+  pointer-events: none;
+}
+
 .hotel-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
