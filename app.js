@@ -596,8 +596,6 @@ function renderHotels() {
 }
 
 function buildHotelDisplayRow(hotel) {
-  const doneCount = getHotelDoneCount(hotel);
-  const percent = Math.round((doneCount / HOTEL_DESIGN_KEYS.length) * 100);
   const refundLabel = hotel.refundMethod === 'airport' ? '공항' : '키오스크';
   const kioskSizeLabel = hotel.kioskSize === 'small' ? '소형' : '대형';
   const qrSrc = hotel.qrImage || buildQrImageUrl(hotel.url);
@@ -628,11 +626,7 @@ function buildHotelDisplayRow(hotel) {
     <td style="white-space:nowrap">${taxNoticeCount ? formatNumber(taxNoticeCount) + '개' : '-'}</td>
     <td><span class="refund-badge ${hotel.refundMethod === 'airport' ? 'airport' : 'kiosk'}">${refundLabel}${hotel.refundMethod === 'kiosk' ? ` · ${kioskSizeLabel}` : ''}</span></td>
     <td>
-      <div class="hotel-progress">
-        <div class="hotel-progress-head"><span>${doneCount}/${HOTEL_DESIGN_KEYS.length}</span><span>${percent}%</span></div>
-        <div class="hotel-progress-bar"><div class="hotel-progress-fill" style="width:${percent}%"></div></div>
-        <div class="hotel-design-tags">${tagsHtml}</div>
-      </div>
+      <div class="hotel-design-tags">${tagsHtml}</div>
     </td>
     <td class="hotel-address">${escapeHtml(hotel.address) || '-'}</td>
     <td>

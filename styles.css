@@ -1857,39 +1857,11 @@ textarea {
   color: var(--success);
 }
 
-.hotel-progress {
-  min-width: 180px;
-}
-
-.hotel-progress-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gray-600);
-}
-
-.hotel-progress-bar {
-  height: 7px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--gray-100);
-  margin-bottom: 8px;
-}
-
-.hotel-progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--primary);
-}
-
 .hotel-design-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  min-width: 180px;
 }
 
 .hotel-design-tag {
