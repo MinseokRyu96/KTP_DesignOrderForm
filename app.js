@@ -511,9 +511,14 @@ function buildHotelDisplayRow(hotel) {
     <td class="hotel-address">${escapeHtml(hotel.address) || '-'}</td>
     <td>
       <div class="hotel-actions">
-        <button class="btn btn-copy btn-sm" data-haction="copy-url" data-id="${hotel.id}">URL 복사</button>
-        <button class="btn btn-edit btn-sm" data-haction="edit" data-id="${hotel.id}">수정</button>
-        <button class="btn btn-delete btn-sm" data-haction="delete" data-id="${hotel.id}">삭제</button>
+        <div class="hotel-menu">
+          <button type="button" class="hotel-menu-btn" data-haction="menu-toggle" title="더보기">⋯</button>
+          <div class="hotel-menu-dropdown">
+            <button type="button" data-haction="copy-url" data-id="${hotel.id}">URL 복사</button>
+            <button type="button" data-haction="edit" data-id="${hotel.id}">수정</button>
+            <button type="button" class="danger" data-haction="delete" data-id="${hotel.id}">삭제</button>
+          </div>
+        </div>
       </div>
     </td>
   `;
@@ -1280,7 +1285,14 @@ hotelQrBody.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-haction]');
   if (btn) {
     const { haction, id } = btn.dataset;
-    if (haction === 'copy-url')   copyHotelUrl(id);
+    if (haction === 'menu-toggle') {
+      const menu = btn.closest('.hotel-menu');
+      const wasOpen = menu.classList.contains('open');
+      closeAllHotelMenus();
+      if (!wasOpen) menu.classList.add('open');
+      return;
+    }
+    if (haction === 'copy-url')   { copyHotelUrl(id); closeAllHotelMenus(); }
     if (haction === 'edit')       startEditHotelRow(id);
     if (haction === 'delete')     deleteHotel(id);
     if (haction === 'save-row')   saveHotelRowEdit();
@@ -1315,6 +1327,14 @@ hotelQrBody.addEventListener('click', (e) => {
     hotelRowEdit.kioskSize = sizeBtn.dataset.size;
     sizeBtn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === sizeBtn));
   }
+});
+
+function closeAllHotelMenus() {
+  hotelQrBody.querySelectorAll('.hotel-menu.open').forEach(m => m.classList.remove('open'));
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.hotel-menu')) closeAllHotelMenus();
 });
 
 hotelQrBody.addEventListener('input', (e) => {
