@@ -561,6 +561,10 @@ function renderHotels() {
   hotelEmptyState.classList.toggle('visible', !showTable);
   document.querySelector('.hotel-table-wrap').style.display = showTable ? '' : 'none';
 
+  if (hotelRowEdit && hotelRowEdit.mode === 'new') {
+    hotelQrBody.appendChild(buildHotelEditRow(hotelRowEdit));
+  }
+
   hotelRecords.forEach(hotel => {
     if (hotelRowEdit && hotelRowEdit.mode === 'edit' && hotelRowEdit.id === hotel.id) {
       hotelQrBody.appendChild(buildHotelEditRow(hotelRowEdit));
@@ -568,10 +572,6 @@ function renderHotels() {
       hotelQrBody.appendChild(buildHotelDisplayRow(hotel));
     }
   });
-
-  if (hotelRowEdit && hotelRowEdit.mode === 'new') {
-    hotelQrBody.appendChild(buildHotelEditRow(hotelRowEdit));
-  }
 }
 
 function buildHotelDisplayRow(hotel) {
@@ -824,11 +824,9 @@ async function saveHotelRowEdit() {
         hotelRecords.unshift(hotel);
       }
     }
-    const wasNew = state.mode === 'new';
-    hotelRowEdit = wasNew ? defaultHotelRowState() : null;
+    hotelRowEdit = null;
     renderHotels();
     showToast(hotelStorageMode === 'local' ? '✅ 로컬에 저장됐습니다.' : '✅ 호텔 정보가 저장됐습니다.');
-    if (wasNew) focusHotelEditRow();
   } catch (e) {
     showToast('❌ 저장 중 오류가 발생했습니다.');
     console.error(e);
