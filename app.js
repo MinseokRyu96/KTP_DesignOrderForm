@@ -474,8 +474,9 @@ function buildHotelDisplayRow(hotel) {
   const percent = Math.round((doneCount / HOTEL_DESIGN_KEYS.length) * 100);
   const refundLabel = hotel.refundMethod === 'airport' ? '공항' : '키오스크';
   const kioskSizeLabel = hotel.kioskSize === 'small' ? '소형' : '대형';
-  const qrHtml = hotel.qrImage
-    ? `<img class="hotel-qr-thumb" src="${hotel.qrImage}" alt="${escapeHtml(hotel.nameKo)} QR">`
+  const qrSrc = hotel.qrImage || buildQrImageUrl(hotel.url);
+  const qrHtml = qrSrc
+    ? `<img class="hotel-qr-thumb" src="${qrSrc}" alt="${escapeHtml(hotel.nameKo)} QR">`
     : '<div class="hotel-qr-empty">QR</div>';
   const tagsHtml = HOTEL_DESIGN_KEYS.map(item => (
     `<span class="hotel-design-tag${hotel.checklist?.[item.key] ? ' done' : ''}">${hotel.checklist?.[item.key] ? '✓ ' : ''}${item.label}</span>`
@@ -520,9 +521,7 @@ function buildHotelDisplayRow(hotel) {
 }
 
 function buildHotelEditRow(state) {
-  const qrInner = state.qrImage
-    ? `<img src="${state.qrImage}" alt="QR 미리보기"><button type="button" class="hotel-qr-box-remove" data-haction="remove-qr">×</button>`
-    : `<span>QR 추가</span>`;
+  const qrInner = renderHotelQrBoxInner(state);
 
   const checksHtml = HOTEL_DESIGN_KEYS.map(item => `
     <label class="hotel-check-sm">
@@ -591,6 +590,7 @@ function defaultHotelRowState() {
     url          : '',
     urlTouched   : false,
     qrImage      : '',
+    qrManual     : false,
     roomCount    : null,
     refundMethod : 'kiosk',
     kioskSize    : 'large',
@@ -632,6 +632,7 @@ function startEditHotelRow(id) {
     url          : hotel.url || '',
     urlTouched   : true,
     qrImage      : hotel.qrImage || '',
+    qrManual     : !!hotel.qrImage && hotel.qrImage.startsWith('data:'),
     roomCount    : hotel.roomCount ?? null,
     refundMethod : hotel.refundMethod || 'kiosk',
     kioskSize    : hotel.kioskSize || 'large',
@@ -656,10 +657,9 @@ function handleHotelRowQrFile(file, tr) {
   const reader = new FileReader();
   reader.onload = e => {
     hotelRowEdit.qrImage = e.target.result;
+    hotelRowEdit.qrManual = true;
     const box = tr.querySelector('.hotel-qr-box');
-    if (box) {
-      box.innerHTML = `<img src="${hotelRowEdit.qrImage}" alt="QR 미리보기"><button type="button" class="hotel-qr-box-remove" data-haction="remove-qr">×</button>`;
-    }
+    if (box) box.innerHTML = renderHotelQrBoxInner(hotelRowEdit);
   };
   reader.readAsDataURL(file);
 }
@@ -698,7 +698,7 @@ async function saveHotelRowEdit() {
     nameKo,
     nameEn       : (state.nameEn || '').trim(),
     url,
-    qrImage      : state.qrImage || '',
+    qrImage      : state.qrManual ? (state.qrImage || '') : buildQrImageUrl(url),
     roomCount    : state.roomCount !== null && state.roomCount !== '' ? parseFloat(state.roomCount) : null,
     refundMethod : state.refundMethod,
     kioskSize    : state.refundMethod === 'kiosk' ? state.kioskSize : '',
@@ -952,6 +952,21 @@ function buildHotelUrlFromEnglishName(name) {
     .replace(/^-+|-+$/g, '');
 
   return slug ? `https://hotel.refundit.kr/${slug}` : '';
+}
+
+function buildQrImageUrl(url) {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return '';
+  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(trimmed)}`;
+}
+
+function renderHotelQrBoxInner(state) {
+  const qrSrc = state.qrManual ? state.qrImage : buildQrImageUrl(state.url);
+  if (!qrSrc) return '<span>QR 자동생성</span>';
+  const removeBtn = state.qrManual
+    ? '<button type="button" class="hotel-qr-box-remove" data-haction="remove-qr" title="자동 생성으로 되돌리기">×</button>'
+    : '';
+  return `<img src="${qrSrc}" alt="QR 미리보기">${removeBtn}`;
 }
 
 async function deleteHotel(id) {
@@ -1229,10 +1244,11 @@ hotelQrBody.addEventListener('click', (e) => {
     if (haction === 'delete')     deleteHotel(id);
     if (haction === 'save-row')   saveHotelRowEdit();
     if (haction === 'cancel-row') cancelHotelRowEdit();
-    if (haction === 'remove-qr') {
-      if (hotelRowEdit) hotelRowEdit.qrImage = '';
+    if (haction === 'remove-qr' && hotelRowEdit) {
+      hotelRowEdit.qrImage = '';
+      hotelRowEdit.qrManual = false;
       const box = btn.closest('.hotel-qr-box');
-      if (box) box.innerHTML = '<span>QR 추가</span>';
+      if (box) box.innerHTML = renderHotelQrBoxInner(hotelRowEdit);
     }
     return;
   }
@@ -1280,6 +1296,10 @@ hotelQrBody.addEventListener('input', (e) => {
   }
   if (field === 'url') {
     hotelRowEdit.urlTouched = e.target.value.trim() !== '';
+  }
+  if ((field === 'url' || field === 'nameEn') && !hotelRowEdit.qrManual) {
+    const box = e.target.closest('tr').querySelector('.hotel-qr-box');
+    if (box) box.innerHTML = renderHotelQrBoxInner(hotelRowEdit);
   }
 });
 
