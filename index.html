@@ -141,6 +141,18 @@
           <button class="btn btn-primary" id="addHotelBtn">+ 호텔 추가</button>
         </div>
 
+        <div class="hotel-search-row">
+          <div class="search-wrap">
+            <div class="search-mark" aria-hidden="true">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/></svg>
+            </div>
+            <label class="search-field" for="hotelSearchInput">
+              <input type="text" id="hotelSearchInput" class="search-input" placeholder="호텔명을 입력하세요 (한글/영문)">
+            </label>
+            <button type="button" class="search-clear" id="hotelSearchClear" aria-label="검색어 지우기" hidden>&times;</button>
+          </div>
+        </div>
+
         <div class="dl-panel" id="downloadLinksPanel">
           <div class="dl-panel-head">
             <h3>디자인물 다운로드</h3>
@@ -185,8 +197,8 @@
 
         <div class="empty-state" id="hotelEmptyState">
           <div class="empty-icon">🏨</div>
-          <p>등록된 호텔이 없습니다.</p>
-          <p class="empty-sub">우측 상단 "+ 호텔 추가" 버튼으로 QR 관리 항목을 만들어보세요.</p>
+          <p id="hotelEmptyTitle">등록된 호텔이 없습니다.</p>
+          <p class="empty-sub" id="hotelEmptySub">우측 상단 "+ 호텔 추가" 버튼으로 QR 관리 항목을 만들어보세요.</p>
         </div>
       </main>
     </div>

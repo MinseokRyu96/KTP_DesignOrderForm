@@ -1558,6 +1558,14 @@ textarea {
   font-size: 13px;
 }
 
+.hotel-search-row {
+  margin-bottom: 16px;
+}
+
+.hotel-search-row .search-wrap {
+  max-width: 420px;
+}
+
 /* ── 디자인물 다운로드 링크 ── */
 .dl-panel {
   background: var(--white);

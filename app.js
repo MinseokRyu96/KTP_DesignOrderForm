@@ -120,6 +120,7 @@ let hotelRowEdit   = null; // 인라인 편집/신규 행 상태: { mode: 'new'|
 let downloadLinks   = {}; // { [key]: url }
 let downloadLinksStorageMode = 'supabase';
 let downloadLinksLoaded = false;
+let hotelSearchQuery = '';
 let selectedIds    = new Set();
 let filterMain     = '';
 let filterSub      = '';
@@ -547,6 +548,15 @@ function renderDlLinkRow(node, hideLabel = false) {
   `;
 }
 
+function getFilteredHotels() {
+  const q = hotelSearchQuery.trim().toLowerCase();
+  if (!q) return hotelRecords;
+  return hotelRecords.filter(hotel =>
+    (hotel.nameKo || '').toLowerCase().includes(q) ||
+    (hotel.nameEn || '').toLowerCase().includes(q)
+  );
+}
+
 function renderHotels() {
   closeHotelActionMenu();
   const total = hotelRecords.length;
@@ -557,15 +567,26 @@ function renderHotels() {
   document.getElementById('hotelProgressCount').textContent = total - ready;
 
   hotelQrBody.innerHTML = '';
-  const showTable = total > 0 || !!hotelRowEdit;
+  const filtered = getFilteredHotels();
+  const showTable = filtered.length > 0 || !!hotelRowEdit;
   hotelEmptyState.classList.toggle('visible', !showTable);
   document.querySelector('.hotel-table-wrap').style.display = showTable ? '' : 'none';
+
+  if (!showTable) {
+    const noResultsFromSearch = hotelSearchQuery.trim() !== '' && total > 0;
+    document.getElementById('hotelEmptyTitle').textContent = noResultsFromSearch
+      ? '검색 결과가 없습니다.'
+      : '등록된 호텔이 없습니다.';
+    document.getElementById('hotelEmptySub').textContent = noResultsFromSearch
+      ? '다른 검색어로 다시 시도해보세요.'
+      : '우측 상단 "+ 호텔 추가" 버튼으로 QR 관리 항목을 만들어보세요.';
+  }
 
   if (hotelRowEdit && hotelRowEdit.mode === 'new') {
     hotelQrBody.appendChild(buildHotelEditRow(hotelRowEdit));
   }
 
-  hotelRecords.forEach(hotel => {
+  filtered.forEach(hotel => {
     if (hotelRowEdit && hotelRowEdit.mode === 'edit' && hotelRowEdit.id === hotel.id) {
       hotelQrBody.appendChild(buildHotelEditRow(hotelRowEdit));
     } else {
@@ -1651,6 +1672,24 @@ searchClear.addEventListener('click', () => {
   searchClear.hidden = true;
   searchInput.focus();
   render();
+});
+
+// 호텔 QR 검색
+const hotelSearchInput = document.getElementById('hotelSearchInput');
+const hotelSearchClear = document.getElementById('hotelSearchClear');
+
+hotelSearchInput.addEventListener('input', () => {
+  hotelSearchQuery = hotelSearchInput.value;
+  hotelSearchClear.hidden = !hotelSearchQuery;
+  renderHotels();
+});
+
+hotelSearchClear.addEventListener('click', () => {
+  hotelSearchInput.value = '';
+  hotelSearchQuery = '';
+  hotelSearchClear.hidden = true;
+  hotelSearchInput.focus();
+  renderHotels();
 });
 
 // 카테고리 pill 토글
