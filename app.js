@@ -548,6 +548,7 @@ function renderDlLinkRow(node, hideLabel = false) {
 }
 
 function renderHotels() {
+  closeHotelActionMenu();
   const total = hotelRecords.length;
   const ready = hotelRecords.filter(hotel => getHotelDoneCount(hotel) === HOTEL_DESIGN_KEYS.length).length;
 
@@ -615,14 +616,7 @@ function buildHotelDisplayRow(hotel) {
     <td class="hotel-address">${escapeHtml(hotel.address) || '-'}</td>
     <td>
       <div class="hotel-actions">
-        <div class="hotel-menu">
-          <button type="button" class="hotel-menu-btn" data-haction="menu-toggle" title="더보기">⋯</button>
-          <div class="hotel-menu-dropdown">
-            <button type="button" data-haction="copy-url" data-id="${hotel.id}">URL 복사</button>
-            <button type="button" data-haction="edit" data-id="${hotel.id}">수정</button>
-            <button type="button" class="danger" data-haction="delete" data-id="${hotel.id}">삭제</button>
-          </div>
-        </div>
+        <button type="button" class="hotel-menu-btn" data-haction="menu-toggle" data-id="${hotel.id}" title="더보기">⋯</button>
       </div>
     </td>
   `;
@@ -1424,13 +1418,11 @@ hotelQrBody.addEventListener('click', (e) => {
   if (btn) {
     const { haction, id } = btn.dataset;
     if (haction === 'menu-toggle') {
-      const menu = btn.closest('.hotel-menu');
-      const wasOpen = menu.classList.contains('open');
-      closeAllHotelMenus();
-      if (!wasOpen) menu.classList.add('open');
+      const wasOpenForThis = hotelActionMenuTrigger === btn;
+      closeHotelActionMenu();
+      if (!wasOpenForThis) openHotelActionMenu(btn, id);
       return;
     }
-    if (haction === 'copy-url')   { copyHotelUrl(id); closeAllHotelMenus(); }
     if (haction === 'edit')       startEditHotelRow(id);
     if (haction === 'delete')     deleteHotel(id);
     if (haction === 'save-row')   saveHotelRowEdit();
@@ -1467,13 +1459,56 @@ hotelQrBody.addEventListener('click', (e) => {
   }
 });
 
-function closeAllHotelMenus() {
-  hotelQrBody.querySelectorAll('.hotel-menu.open').forEach(m => m.classList.remove('open'));
+const hotelActionMenu = document.getElementById('hotelActionMenu');
+let hotelActionMenuTrigger = null;
+
+function openHotelActionMenu(btn, hotelId) {
+  hotelActionMenuTrigger = btn;
+  btn.classList.add('active');
+  hotelActionMenu.querySelectorAll('[data-haction]').forEach(b => { b.dataset.id = hotelId; });
+  hotelActionMenu.classList.add('open');
+
+  const btnRect = btn.getBoundingClientRect();
+  const menuRect = hotelActionMenu.getBoundingClientRect();
+  const margin = 6;
+
+  let top = btnRect.bottom + margin;
+  if (top + menuRect.height > window.innerHeight - margin) {
+    top = btnRect.top - menuRect.height - margin;
+  }
+  top = Math.max(margin, top);
+
+  let left = btnRect.right - menuRect.width;
+  left = Math.min(left, window.innerWidth - menuRect.width - margin);
+  left = Math.max(margin, left);
+
+  hotelActionMenu.style.top = `${top}px`;
+  hotelActionMenu.style.left = `${left}px`;
 }
 
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.hotel-menu')) closeAllHotelMenus();
+function closeHotelActionMenu() {
+  hotelActionMenuTrigger?.classList.remove('active');
+  hotelActionMenuTrigger = null;
+  hotelActionMenu.classList.remove('open');
+}
+
+hotelActionMenu.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-haction]');
+  if (!btn) return;
+  const { haction, id } = btn.dataset;
+  if (haction === 'copy-url') copyHotelUrl(id);
+  if (haction === 'edit')     startEditHotelRow(id);
+  if (haction === 'delete')   deleteHotel(id);
+  closeHotelActionMenu();
 });
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#hotelActionMenu') || e.target.closest('.hotel-menu-btn')) return;
+  closeHotelActionMenu();
+});
+
+window.addEventListener('scroll', () => closeHotelActionMenu(), true);
+window.addEventListener('resize', () => closeHotelActionMenu());
 
 hotelQrBody.addEventListener('input', (e) => {
   if (!hotelRowEdit) return;

@@ -1923,11 +1923,6 @@ textarea {
   white-space: nowrap;
 }
 
-.hotel-menu {
-  position: relative;
-  display: inline-block;
-}
-
 .hotel-menu-btn {
   width: 30px;
   height: 30px;
@@ -1949,26 +1944,26 @@ textarea {
   color: var(--gray-700);
 }
 
-.hotel-menu.open .hotel-menu-btn {
+.hotel-menu-btn.active {
   border-color: var(--primary);
   color: var(--primary);
 }
 
+/* 테이블 스크롤 영역(overflow-x: auto)에 잘리지 않도록 body 최상단에서
+   position: fixed로 띄우고 JS로 버튼 위치에 맞춰 top/left를 계산한다 */
 .hotel-menu-dropdown {
   display: none;
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  position: fixed;
   min-width: 110px;
   background: var(--white);
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
-  z-index: 50;
+  z-index: 3000;
 }
 
-.hotel-menu.open .hotel-menu-dropdown {
+.hotel-menu-dropdown.open {
   display: block;
 }
 
