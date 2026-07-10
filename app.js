@@ -479,7 +479,7 @@ function buildHotelDisplayRow(hotel) {
     ? `<img class="hotel-qr-thumb" src="${qrSrc}" alt="${escapeHtml(hotel.nameKo)} QR">`
     : '<div class="hotel-qr-empty">QR</div>';
   const tagsHtml = HOTEL_DESIGN_KEYS.map(item => (
-    `<span class="hotel-design-tag${hotel.checklist?.[item.key] ? ' done' : ''}">${hotel.checklist?.[item.key] ? '✓ ' : ''}${item.label}</span>`
+    `<button type="button" class="hotel-design-tag${hotel.checklist?.[item.key] ? ' done' : ''}" data-toggle-check="${item.key}" data-id="${hotel.id}">${hotel.checklist?.[item.key] ? '✓ ' : ''}${item.label}</button>`
   )).join('');
   const tableTentCount = hotel.checklist?.tableTentCount;
   const taxNoticeCount = hotel.checklist?.taxNoticeCount;
@@ -999,6 +999,28 @@ async function copyHotelUrl(id) {
   await copyText(normalizeHotelUrl(hotel.url), '✅ URL을 복사했습니다.');
 }
 
+async function toggleHotelChecklistItem(id, key) {
+  const hotel = hotelRecords.find(h => h.id === id);
+  if (!hotel) return;
+  const updated = {
+    ...hotel,
+    checklist  : { ...(hotel.checklist || {}), [key]: !hotel.checklist?.[key] },
+    updatedAt  : new Date().toISOString(),
+  };
+
+  try {
+    await upsertHotel(updated);
+    if (hotelStorageMode === 'supabase') {
+      const idx = hotelRecords.findIndex(h => h.id === id);
+      if (idx !== -1) hotelRecords[idx] = updated;
+    }
+    renderHotels();
+  } catch (e) {
+    showToast('❌ 저장 중 오류가 발생했습니다.');
+    console.error(e);
+  }
+}
+
 // ── Delete modal ──────────────────────────────────────────────
 function openDeleteModal(id) {
   deletingId = id;
@@ -1246,6 +1268,12 @@ hotelQrBody.addEventListener('click', (e) => {
   if (qrThumb) {
     const hotel = hotelRecords.find(h => h.id === qrThumb.closest('tr[data-id]')?.dataset.id);
     openLightbox(qrThumb.src, `${hotel?.nameKo || 'hotel'}-QR.png`);
+    return;
+  }
+
+  const tagBtn = e.target.closest('[data-toggle-check]');
+  if (tagBtn) {
+    toggleHotelChecklistItem(tagBtn.dataset.id, tagBtn.dataset.toggleCheck);
     return;
   }
 
