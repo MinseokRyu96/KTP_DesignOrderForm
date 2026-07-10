@@ -1686,6 +1686,7 @@ textarea {
 .hotel-qr-thumb {
   object-fit: cover;
   background: var(--white);
+  cursor: pointer;
 }
 
 .hotel-qr-empty {
@@ -2130,6 +2131,28 @@ textarea {
 }
 
 .lightbox-close:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+.lightbox-download {
+  position: absolute;
+  top: 20px;
+  right: 72px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: var(--white);
+  border-radius: 50%;
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.lightbox-download:hover {
   background: rgba(255,255,255,0.28);
 }
 

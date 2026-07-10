@@ -494,7 +494,7 @@ function buildHotelDisplayRow(hotel) {
     <td>
       <div class="hotel-url-wrap">
         ${qrHtml}
-        <div class="hotel-url">${hotel.url ? `<a href="${escapeAttr(hotel.url)}" target="_blank" rel="noopener">${escapeHtml(hotel.url)}</a>` : '-'}</div>
+        <div class="hotel-url">${hotel.url ? `<a href="${escapeAttr(normalizeHotelUrl(hotel.url))}" target="_blank" rel="noopener">${escapeHtml(hotel.url)}</a>` : '-'}</div>
       </div>
     </td>
     <td style="white-space:nowrap">${hotel.roomCount ? formatNumber(hotel.roomCount) + '실' : '-'}</td>
@@ -540,7 +540,7 @@ function buildHotelEditRow(state) {
     </td>
     <td>
       <div class="hotel-url-wrap">
-        <div class="hotel-qr-box" data-haction="qr-box">${qrInner}</div>
+        <div class="hotel-qr-box">${qrInner}</div>
         <input type="file" class="hotel-qr-box-input" accept="image/*" hidden>
         <input type="url" class="hotel-edit-input" data-field="url" placeholder="URL (자동 생성)" value="${escapeAttr(state.url || '')}">
       </div>
@@ -670,7 +670,7 @@ async function saveHotelRowEdit() {
   const tr = hotelQrBody.querySelector('.hotel-row-edit');
   const nameKo = (state.nameKo || '').trim();
   const autoUrl = buildHotelUrlFromEnglishName(state.nameEn || '');
-  const url = (state.url || '').trim() || autoUrl;
+  const url = normalizeHotelUrl((state.url || '').trim() || autoUrl);
 
   if (!nameKo) {
     showToast('⚠️ 호텔명을 입력하세요.');
@@ -954,8 +954,14 @@ function buildHotelUrlFromEnglishName(name) {
   return slug ? `https://hotel.refundit.kr/${slug}` : '';
 }
 
-function buildQrImageUrl(url) {
+function normalizeHotelUrl(url) {
   const trimmed = (url || '').trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function buildQrImageUrl(url) {
+  const trimmed = normalizeHotelUrl(url);
   if (!trimmed) return '';
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(trimmed)}`;
 }
@@ -990,7 +996,7 @@ async function deleteHotel(id) {
 async function copyHotelUrl(id) {
   const hotel = hotelRecords.find(h => h.id === id);
   if (!hotel?.url) return;
-  await copyText(hotel.url, '✅ URL을 복사했습니다.');
+  await copyText(normalizeHotelUrl(hotel.url), '✅ URL을 복사했습니다.');
 }
 
 // ── Delete modal ──────────────────────────────────────────────
@@ -1236,6 +1242,13 @@ document.getElementById('itemsListWrap').addEventListener('click', (e) => {
 });
 
 hotelQrBody.addEventListener('click', (e) => {
+  const qrThumb = e.target.closest('.hotel-qr-thumb');
+  if (qrThumb) {
+    const hotel = hotelRecords.find(h => h.id === qrThumb.closest('tr[data-id]')?.dataset.id);
+    openLightbox(qrThumb.src, `${hotel?.nameKo || 'hotel'}-QR.png`);
+    return;
+  }
+
   const btn = e.target.closest('[data-haction]');
   if (btn) {
     const { haction, id } = btn.dataset;
@@ -1334,9 +1347,11 @@ document.getElementById('viewListBtn').addEventListener('click', () => setViewMo
 // ── 라이트박스 ────────────────────────────────────────────────
 const lightbox    = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightboxImg');
+let lightboxDownloadName = 'image.png';
 
-function openLightbox(src) {
+function openLightbox(src, downloadName) {
   lightboxImg.src = src;
+  lightboxDownloadName = downloadName || 'image.png';
   lightbox.classList.add('open');
 }
 
@@ -1345,7 +1360,29 @@ function closeLightbox() {
   lightboxImg.src = '';
 }
 
+async function downloadLightboxImage() {
+  const src = lightboxImg.src;
+  if (!src) return;
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = lightboxDownloadName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (e) {
+    console.error(e);
+    window.open(src, '_blank');
+    showToast('⚠️ 자동 다운로드에 실패해 새 탭에서 열었습니다.');
+  }
+}
+
 document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+document.getElementById('lightboxDownload').addEventListener('click', downloadLightboxImage);
 lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
